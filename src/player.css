@@ -9,3 +9,4 @@ html[data-rounded=false] .record-art{border-radius:0}html[data-motion=false] .ly
 .record-side{max-width:clamp(200px,calc(100vh - 620px),380px)}
 @media(max-height:760px){.record-side{max-width:200px}.record-title-row h1{font-size:18px}.record-title-row p{font-size:11px}.record-link{display:none}.lyrics-side{height:calc(100vh - 225px)}#record-placeholder>span:last-child{font-size:18px}#record-placeholder .brand-mark{transform:scale(1.4)}}
 @media(prefers-reduced-motion:reduce){html:not([data-reduce-motion=ignore]) .lyric-line{transition:none;filter:none}html:not([data-reduce-motion=ignore]) .lyric-line>span{animation:none}html:not([data-reduce-motion=ignore]) .lyrics-scroll{scroll-behavior:auto}}
+.lyric-line.is-active{opacity:1;filter:none;transition:transform 240ms var(--ease),color 160ms var(--ease)}

@@ -6,3 +6,11 @@ artifacts/
 media/*.mp4
 .env
 .env.*
+design/
+media/
+docs/media-production.md
+docs/media/HexSound-telegram.mp4
+docs/media/video-cover.png
+scripts/capture-promo.cjs
+scripts/render-promo.cjs
+scripts/logo-concepts.cjs

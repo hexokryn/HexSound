@@ -1,7 +1,7 @@
 {
   "name": "hexsound",
-  "version": "0.6.0",
-  "description": "SoundCloud desktop with a quiet Apple-inspired interface",
+  "version": "0.7.0",
+  "description": "A unified music library for Windows and Linux",
   "main": "src/main.cjs",
   "author": "hexokryn",
   "homepage": "https://github.com/hexokryn/HexSound",
@@ -11,7 +11,9 @@
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
     "dist": "electron-builder --win nsis portable",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "dist:linux": "electron-builder --linux AppImage deb tar.gz",
+    "check:library": "electron . --library-test"
   },
   "devDependencies": { "electron": "45.3.4", "electron-builder": "26.18.0" },
   "build": {
@@ -20,6 +22,15 @@
     "files": ["src/**/*", "package.json"],
     "directories": { "output": "release" },
     "win": { "target": ["nsis", "portable"], "icon": "src/assets/icon.ico", "signExecutable": false },
+    "linux": {
+      "target": ["AppImage", "deb", "tar.gz"],
+      "executableName": "hexsound",
+      "artifactName": "HexSound-${version}-linux-${arch}.${ext}",
+      "category": "AudioVideo",
+      "icon": "src/assets/icons",
+      "maintainer": "hexokryn <351071836+hexokryn@users.noreply.github.com>",
+      "desktop": { "entry": { "StartupWMClass": "HexSound", "Keywords": "Music;Audio;SoundCloud;Spotify;" } }
+    },
     "nsis": {
       "artifactName": "HexSound-${version}-setup.exe",
       "oneClick": false,

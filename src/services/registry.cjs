@@ -1,0 +1,13 @@
+const SERVICES=Object.freeze({
+  spotify:{id:'spotify',name:'Spotify',api:'https://api.spotify.com/v1/',authorize:'https://accounts.spotify.com/authorize',token:'https://accounts.spotify.com/api/token',web:'https://open.spotify.com/',scopes:['user-library-read','playlist-read-private','playlist-read-collaborative','playlist-modify-private','playlist-modify-public'],redirect:'http://127.0.0.1/callback/spotify'},
+  soundcloud:{id:'soundcloud',name:'SoundCloud',api:'https://api.soundcloud.com/',authorize:'https://secure.soundcloud.com/authorize',token:'https://secure.soundcloud.com/oauth/token',web:'https://soundcloud.com/',scopes:[],redirect:'http://127.0.0.1:8766/callback/soundcloud'},
+  youtube:{id:'youtube',name:'YouTube Music',api:'https://www.googleapis.com/youtube/v3/',authorize:'https://accounts.google.com/o/oauth2/v2/auth',token:'https://oauth2.googleapis.com/token',web:'https://music.youtube.com/',scopes:['https://www.googleapis.com/auth/youtube'],redirect:'http://127.0.0.1/callback/youtube'},
+  yandex:{id:'yandex',name:'Yandex Music',api:'https://api.music.yandex.net/',experimental:true,web:'https://music.yandex.ru/',scopes:[],redirect:''}
+});
+class ServiceError extends Error{constructor(code,message,{status,retryAfter,retryAfterMs}={}){super(message);this.name='ServiceError';this.code=code;if(status)this.status=status;if(retryAfter)this.retryAfter=retryAfter;if(retryAfterMs||retryAfter)this.retryAfterMs=retryAfterMs||retryAfter*1000;}}
+function service(id){if(typeof id!=='string'||!Object.hasOwn(SERVICES,id))throw new ServiceError('INVALID_SERVICE','Неизвестный музыкальный сервис.');return SERVICES[id];}
+function text(value,max=500){return typeof value==='string'?value.replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,max):'';}
+function id(value){const out=String(value??'');if(!/^[A-Za-z0-9_:-]{1,180}$/.test(out))throw new ServiceError('INVALID_ID','Некорректный идентификатор.');return out;}
+function safeURL(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';}catch{return '';}}
+function redirectURI(value,provider){const s=service(provider);let u;try{if(value&&(typeof value!=='string'||value.length>1000))throw Error();u=new URL(value||s.redirect);}catch{throw new ServiceError('INVALID_REDIRECT','Некорректный Redirect URI.');}if(u.protocol!=='http:'||u.hostname!=='127.0.0.1'||u.username||u.password||u.search||u.hash||!u.pathname.startsWith('/callback/'))throw new ServiceError('INVALID_REDIRECT','Redirect URI должен иметь вид http://127.0.0.1:порт/callback/сервис.');return u.href;}
+module.exports={SERVICES,ServiceError,service,text,id,safeURL,redirectURI};
