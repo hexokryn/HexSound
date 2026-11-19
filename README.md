@@ -13,15 +13,15 @@ HexSound — единая музыкальная библиотека для Win
 | :--- | :--- | :--- |
 | Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.7.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-setup.exe) |
 | Windows x64 | Portable без установки | [HexSound-0.7.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-portable.exe) |
-| Linux x64 | AppImage | [HexSound-0.7.0-linux-x64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x64.AppImage) |
-| Linux x64 | Пакет DEB | [HexSound-0.7.0-linux-x64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x64.deb) |
+| Linux x64 | AppImage | [HexSound-0.7.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x86_64.AppImage) |
+| Linux x64 | Пакет DEB | [HexSound-0.7.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-amd64.deb) |
 | Linux x64 | Архив tar.gz | [HexSound-0.7.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x64.tar.gz) |
 
 Для AppImage разрешите запуск файла:
 
 ```sh
-chmod +x HexSound-0.7.0-linux-x64.AppImage
-./HexSound-0.7.0-linux-x64.AppImage
+chmod +x HexSound-0.7.0-linux-x86_64.AppImage
+./HexSound-0.7.0-linux-x86_64.AppImage
 ```
 
 Если FUSE недоступен, в [инструкции для Linux](docs/linux.md) описан запуск через извлечение AppImage. Там же указаны зависимости и настройка системного хранилища секретов.

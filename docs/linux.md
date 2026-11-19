@@ -5,14 +5,14 @@
 ## AppImage
 
 ```sh
-chmod +x HexSound-0.7.0-linux-x64.AppImage
-./HexSound-0.7.0-linux-x64.AppImage
+chmod +x HexSound-0.7.0-linux-x86_64.AppImage
+./HexSound-0.7.0-linux-x86_64.AppImage
 ```
 
 Если FUSE отсутствует, можно извлечь AppImage в отдельную папку и запустить AppRun:
 
 ```sh
-./HexSound-0.7.0-linux-x64.AppImage --appimage-extract
+./HexSound-0.7.0-linux-x86_64.AppImage --appimage-extract
 ./squashfs-root/AppRun
 ```
 
@@ -21,7 +21,7 @@ chmod +x HexSound-0.7.0-linux-x64.AppImage
 В Debian/Ubuntu установите локальный пакет через apt, чтобы установить его зависимости:
 
 ```sh
-sudo apt install ./HexSound-0.7.0-linux-x64.deb
+sudo apt install ./HexSound-0.7.0-linux-amd64.deb
 ```
 
 Приложение появится в меню приложений как HexSound. Для удаления используется обычный менеджер пакетов. Пользовательская библиотека и подключения хранятся отдельно от файлов программы.
