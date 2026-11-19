@@ -1,0 +1,8 @@
+✅ Создал HexSound
+••• Это SoundCloud для Windows с минималистичным интерфейсом.
+
+32 темы, живые фоны, анимации обложки и текста песен. Вход прямо в приложении, библиотека, лайки и плейлисты.
+
+Установщик и Portable уже в релизах.
+Скачать: https://github.com/hexokryn/HexSound/releases/latest
+Исходники: https://github.com/hexokryn/HexSound
