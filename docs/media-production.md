@@ -14,4 +14,4 @@ npx electron scripts/render-promo.cjs
 
 Capture uses an isolated temporary profile. It writes five app screenshots into `docs/screenshots/` and an intermediate interface recording into `artifacts/promo/`. The render step creates the README banner, video cover and `media/HexSound-telegram.mp4`. It decodes the whole output to check the encoded file, and writes a contact sheet for visual review.
 
-The development-only capture switch is disabled in packaged builds. Demo data doesn't enter normal playback. Local build outputs and videos are excluded from Git; the final MP4 is attached to the GitHub release.
+The development-only capture switch is disabled in packaged builds. Demo data doesn't enter normal playback. Local build outputs are excluded from Git. The final MP4 is stored in `docs/media/HexSound-telegram.mp4` and attached to the GitHub release.
