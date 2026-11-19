@@ -7,21 +7,31 @@ HexSound — единая музыкальная библиотека для Win
 
 ![Единая библиотека HexSound](docs/screenshots/library.png)
 
+## Моя волна и новая медиатека
+
+![Моя волна в HexSound](docs/screenshots/wave.png)
+
+Волна ищет похожие записи по вашей библиотеке и объясняет выбор. Можно менять долю нового, выбирать каталог, отмечать понравившееся и исключать треки. Для новых подборок подключите API каталога; алгоритм подбора собственный.
+
+В версии 0.8 также появились сохраняемая очередь с перетаскиванием, мини-плеер поверх окон, музыкальные папки, теги, умные плейлисты, ручное объединение записей и локальная статистика. Незавершённый перенос можно продолжить после проверки содержимого целевого плейлиста.
+
+[Как пользоваться волной, очередью и локальной коллекцией](docs/experience.md)
+
 ## Скачать
 
 | Платформа | Вариант | Загрузка |
 | :--- | :--- | :--- |
-| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.7.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-setup.exe) |
-| Windows x64 | Portable без установки | [HexSound-0.7.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-portable.exe) |
-| Linux x64 | AppImage | [HexSound-0.7.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x86_64.AppImage) |
-| Linux x64 | Пакет DEB | [HexSound-0.7.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-amd64.deb) |
-| Linux x64 | Архив tar.gz | [HexSound-0.7.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x64.tar.gz) |
+| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.8.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-setup.exe) |
+| Windows x64 | Portable без установки | [HexSound-0.8.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-portable.exe) |
+| Linux x64 | AppImage | [HexSound-0.8.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-x86_64.AppImage) |
+| Linux x64 | Пакет DEB | [HexSound-0.8.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-amd64.deb) |
+| Linux x64 | Архив tar.gz | [HexSound-0.8.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-x64.tar.gz) |
 
 Для AppImage разрешите запуск файла:
 
 ```sh
-chmod +x HexSound-0.7.0-linux-x86_64.AppImage
-./HexSound-0.7.0-linux-x86_64.AppImage
+chmod +x HexSound-0.8.0-linux-x86_64.AppImage
+./HexSound-0.8.0-linux-x86_64.AppImage
 ```
 
 Если FUSE недоступен, в [инструкции для Linux](docs/linux.md) описан запуск через извлечение AppImage. Там же указаны зависимости и настройка системного хранилища секретов.
@@ -73,7 +83,7 @@ Access Token и Client Secret вводятся в защищённые поля 
 
 В оформлении доступны 32 темы, светлый и тёмный режим, девять анимированных фонов и свои изображения. Можно настроить движение обложки, скрыть боковую панель и отключить анимации.
 
-Медиатека, поиск и перенос работают в интерфейсе HexSound. Для воспроизведения остаются официальные веб-плееры, в том числе для DRM. Доступность звука зависит от сервиса, региона и подписки; неподдерживаемые команды плеера отключены. Полная замена всех экранов сайтов не реализована.
+Медиатека, поиск, волна и перенос работают в интерфейсе HexSound. Локальные файлы и доступные потоки SoundCloud API воспроизводятся собственным аудиодвижком с автоматическим переходом в очереди. SoundCloud может ограничить доступ или предоставить только превью. Для остальных сервисов используются официальные веб-плееры, включая обработку DRM. Автоматический запуск и команды в них зависят от сайта. Полная замена всех экранов сервисов не реализована.
 
 ## Разработка и проверка
 
@@ -87,6 +97,7 @@ npm start
 ```sh
 npm test
 npm run check:library
+npm run check:experience
 ```
 
 Сборка на соответствующей платформе:

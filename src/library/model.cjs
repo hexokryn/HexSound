@@ -22,7 +22,7 @@ function normalizeTrack(raw,service){
   const id=rawId||'import-'+digest(url||[title,artist,raw.duration||0].join('|'));
   const duration=typeof raw.duration==='number'&&Number.isFinite(raw.duration)?Math.max(0,Math.min(86400,raw.duration)):0;
   const isrc=clean(raw.isrc,30).toUpperCase().replace(/-/g,'');
-  return {id,service,title,artist,album:clean(raw.album,300),duration,url,artwork:pageURL(raw.artwork),isrc:/^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(isrc)?isrc:''};
+  return {id,service,title,artist,album:clean(raw.album,300),duration,addedAt:Number.isFinite(raw.addedAt)?Math.max(0,raw.addedAt):0,url,artwork:pageURL(raw.artwork),isrc:/^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(isrc)?isrc:''};
 }
 const sourceKey=track=>track.service+':'+encodeURIComponent(track.id);
 function sameRecording(a,b){
@@ -32,19 +32,24 @@ function sameRecording(a,b){
   if(a.isrc&&a.isrc===b.isrc)return gap===null||gap<=Math.max(3,Math.min(7,a.duration*.02));
   return !!a.artist&&!!b.artist&&titleKey(a.title)===titleKey(b.title)&&normalize(a.artist)===normalize(b.artist)&&gap!==null&&gap<=2.5;
 }
-function buildIndex(providers,oldLinks={}){
+function buildIndex(providers,oldLinks={},decisions={}){
+  const parent=new Map(),split=new Map();const find=k=>{if(!parent.has(k))parent.set(k,k);if(parent.get(k)!==k)parent.set(k,find(parent.get(k)));return parent.get(k);};
+  for(const group of (decisions.merges||[]))for(const key of group.slice(1))parent.set(find(key),find(group[0]));
+  for(const pair of (decisions.splits||[])){if(!split.has(pair[0]))split.set(pair[0],new Set());if(!split.has(pair[1]))split.set(pair[1],new Set());split.get(pair[0]).add(pair[1]);split.get(pair[1]).add(pair[0]);}
+  const manual=new Map();
   const tracks=Object.values(providers).flatMap(p=>p.tracks).sort((a,b)=>sourceKey(a).localeCompare(sourceKey(b),'en'));
   const groups=[],byMetadata=new Map(),byISRC=new Map(),usedIds=new Set(),links={},sourceGroups=new Map();
   for(const track of tracks){
-    const metadata=titleKey(track.title)+'|'+normalize(track.artist),candidates=new Set([...(byMetadata.get(metadata)||[]),...(track.isrc?byISRC.get(track.isrc)||[]:[])]);
-    let group=[...candidates].find(g=>g.sources.every(s=>sameRecording(s,track)));
+    const metadata=titleKey(track.title)+'|'+normalize(track.artist),manualKey=find(sourceKey(track)),candidates=new Set([...(byMetadata.get(metadata)||[]),...(track.isrc?byISRC.get(track.isrc)||[]:[])]);
+    if(manual.has(manualKey))candidates.add(manual.get(manualKey));
+    let group=[...candidates].find(g=>g.sources.every(s=>!split.get(sourceKey(track))?.has(sourceKey(s))&&(find(sourceKey(s))===manualKey||sameRecording(s,track))));
     if(!group){
       let id=oldLinks[sourceKey(track)];
       if(!/^track-[a-f0-9]{24}$/.test(id||'')||usedIds.has(id))id='track-'+digest(metadata+'|'+edition(track.title)+'|'+Math.round(track.duration/5)*5+'|'+track.isrc);
       if(usedIds.has(id))id='track-'+digest(id+'|'+sourceKey(track));
-      usedIds.add(id);group={id,title:track.title,artist:track.artist,album:track.album,duration:track.duration,artwork:track.artwork,sources:[]};groups.push(group);
+      usedIds.add(id);group={id,title:track.title,artist:track.artist,album:track.album,duration:track.duration,addedAt:track.addedAt||0,artwork:track.artwork,sources:[]};groups.push(group);
     }
-    group.sources.push(track);if(!group.artwork&&track.artwork)group.artwork=track.artwork;if(!group.album&&track.album)group.album=track.album;
+    group.sources.push(track);manual.set(manualKey,group);if(track.addedAt&&(!group.addedAt||track.addedAt<group.addedAt))group.addedAt=track.addedAt;if(!group.artwork&&track.artwork)group.artwork=track.artwork;if(!group.album&&track.album)group.album=track.album;
     links[sourceKey(track)]=group.id;sourceGroups.set(sourceKey(track),group.id);
     if(!byMetadata.has(metadata))byMetadata.set(metadata,[]);if(!byMetadata.get(metadata).includes(group))byMetadata.get(metadata).push(group);
     if(track.isrc){if(!byISRC.has(track.isrc))byISRC.set(track.isrc,[]);if(!byISRC.get(track.isrc).includes(group))byISRC.get(track.isrc).push(group);}

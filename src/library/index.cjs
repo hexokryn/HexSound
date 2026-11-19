@@ -9,20 +9,20 @@ function wait(ms,signal){check(signal);return new Promise((resolve,reject)=>{con
 function createLibrary(file,{getAdapter,now=Date.now,maxTracks=50000,searchConcurrency=3,readRetries=1,requestTimeout=45000}={}){
   if(typeof getAdapter!=='function')throw new TypeError('getAdapter is required');
   const allowed=new Set(SERVICES),plans=new Map(),syncing=new Set(),errors={};let active=null,planning=null,warning='';
-  let state={schema:1,providers:{},links:{},updatedAt:0},index={tracks:[],playlists:[],links:{}};
+  let state={schema:1,providers:{},links:{},decisions:{merges:[],splits:[]},updatedAt:0},index={tracks:[],playlists:[],links:{}};
   const storedVersion=value=>typeof value==='string'?clean(value,1000):typeof value==='number'&&Number.isFinite(value)?value:undefined;
   function normalizeProvider(raw,service,{verified=false,preserveVerified=false,connectionVersion}={}){
-    const map=new Map(),playlistMap=new Map();
+    const map=new Map(),playlistMap=new Map(),previous=new Map((state.providers[service]?.tracks||[]).map(t=>[t.id,t]));
     if(!raw||typeof raw!=='object')throw new LibraryError('invalid_import');
     if(!Array.isArray(raw.tracks)||raw.tracks.length>maxTracks)throw new LibraryError('library_limit','Слишком большая библиотека.');
-    for(const item of raw.tracks){const track=normalizeTrack(item,service);if(track)map.set(track.id,{...track,verified:verified||preserveVerified&&item.verified===true,verifiedFor:storedVersion(verified?connectionVersion:preserveVerified&&item.verified===true?item.verifiedFor:undefined)});}
+    for(const item of raw.tracks){const track=normalizeTrack(item,service);if(track)map.set(track.id,{...track,addedAt:track.addedAt||previous.get(track.id)?.addedAt||now(),verified:verified||preserveVerified&&item.verified===true,verifiedFor:storedVersion(verified?connectionVersion:preserveVerified&&item.verified===true?item.verifiedFor:undefined)});}
     if(Array.isArray(raw.playlists)&&raw.playlists.length>10000)throw new LibraryError('library_limit');
     let references=0;
     for(const rawPlaylist of (Array.isArray(raw.playlists)?raw.playlists:[])){
       const id=clean(String(rawPlaylist.id??''),500),title=clean(rawPlaylist.title||rawPlaylist.name,200);if(!id||!title)continue;
       const trackIds=[];
       if(Array.isArray(rawPlaylist.tracks)&&rawPlaylist.tracks.length>maxTracks||Array.isArray(rawPlaylist.trackIds)&&rawPlaylist.trackIds.length>maxTracks)throw new LibraryError('library_limit');
-      if(Array.isArray(rawPlaylist.tracks))for(const item of rawPlaylist.tracks){const track=normalizeTrack(item,service);if(track){map.set(track.id,{...track,verified:verified||preserveVerified&&item.verified===true,verifiedFor:storedVersion(verified?connectionVersion:preserveVerified&&item.verified===true?item.verifiedFor:undefined)});trackIds.push(track.id);}}
+      if(Array.isArray(rawPlaylist.tracks))for(const item of rawPlaylist.tracks){const track=normalizeTrack(item,service);if(track){map.set(track.id,{...track,addedAt:track.addedAt||previous.get(track.id)?.addedAt||now(),verified:verified||preserveVerified&&item.verified===true,verifiedFor:storedVersion(verified?connectionVersion:preserveVerified&&item.verified===true?item.verifiedFor:undefined)});trackIds.push(track.id);}}
       if(Array.isArray(rawPlaylist.trackIds))for(const value of rawPlaylist.trackIds){const id=typeof value==='number'?String(value):clean(value,500);if(id)trackIds.push(id);}
       references+=trackIds.length;if(references>maxTracks*4||map.size>maxTracks)throw new LibraryError('library_limit');
       playlistMap.set(id,{id,title,url:pageURL(rawPlaylist.url),trackIds,trackCount:Number.isSafeInteger(rawPlaylist.trackCount)&&rawPlaylist.trackCount>=0?rawPlaylist.trackCount:trackIds.length});
@@ -33,14 +33,14 @@ function createLibrary(file,{getAdapter,now=Date.now,maxTracks=50000,searchConcu
   function loaded(raw){
     if(!raw||raw.schema!==1||!raw.providers||typeof raw.providers!=='object')throw Error('Unsupported library');
     const providers={};for(const service of SERVICES)if(Object.hasOwn(raw.providers,service))providers[service]=normalizeProvider(raw.providers[service],service,{preserveVerified:true});
-    const rebuilt=buildIndex(providers,raw.links||{});
-    return {schema:1,providers,links:rebuilt.links,updatedAt:typeof raw.updatedAt==='number'?raw.updatedAt:0};
+    const decisions={merges:Array.isArray(raw.decisions?.merges)?raw.decisions.merges.filter(g=>Array.isArray(g)&&g.length<=200&&g.every(k=>typeof k==='string'&&k.length<1000)).slice(0,1000):[],splits:Array.isArray(raw.decisions?.splits)?raw.decisions.splits.filter(g=>Array.isArray(g)&&g.length===2&&g.every(k=>typeof k==='string'&&k.length<1000)).slice(0,10000):[]};const rebuilt=buildIndex(providers,raw.links||{},decisions);
+    return {schema:1,providers,links:rebuilt.links,decisions,updatedAt:typeof raw.updatedAt==='number'?raw.updatedAt:0};
   }
   function read(name){if(fs.statSync(name).size>64*1024*1024)throw Error('File too large');return loaded(JSON.parse(fs.readFileSync(name,'utf8')));}
   try{state=read(file);}catch(error){if(error.code!=='ENOENT'){warning='library_recovered';try{state=read(file+'.bak');}catch{warning='library_file_invalid';}}}
-  index=buildIndex(state.providers,state.links);
-  function commit(providers){
-    const rebuilt=buildIndex(providers,state.links),next={schema:1,providers,links:rebuilt.links,updatedAt:now()},temp=file+'.tmp-'+crypto.randomBytes(5).toString('hex');
+  index=buildIndex(state.providers,state.links,state.decisions);
+  function commit(providers,decisions=state.decisions){
+    const rebuilt=buildIndex(providers,state.links,decisions),next={schema:1,providers,links:rebuilt.links,decisions,updatedAt:now()},temp=file+'.tmp-'+crypto.randomBytes(5).toString('hex');
     fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});
     try{fs.writeFileSync(temp,JSON.stringify(next),{mode:0o600});fs.writeFileSync(file+'.bak',JSON.stringify(state),{mode:0o600});fs.renameSync(temp,file);}catch(error){try{fs.unlinkSync(temp);}catch{}throw error;}
     state=next;index=rebuilt;warning='';
@@ -89,8 +89,11 @@ function createLibrary(file,{getAdapter,now=Date.now,maxTracks=50000,searchConcu
     }
     if(!Object.keys(incoming).length)throw new LibraryError('invalid_import');const providers={...state.providers};
     for(const [service,p] of Object.entries(incoming))providers[service]=mergeProvider(providers[service],p,replace===true);
-    commit(providers);return snapshot();
+    const decisions=document.decisions?loaded({...document,providers:{}}).decisions:state.decisions;commit(providers,decisions);return snapshot();
   }
+  function duplicateGroups(){const groups=new Map();for(const t of index.tracks){const key=normalize(t.artist)+'|'+normalize(t.title.replace(/\s*[([{].*?[)\]}]/g,''));if(!groups.has(key))groups.set(key,[]);groups.get(key).push(t);}return copy({merged:index.tracks.filter(t=>t.sources.length>1).slice(0,100),candidates:[...groups.values()].filter(g=>g.length>1&&g.length<=12).slice(0,100)});}
+  function mergeTracks(ids){if(!Array.isArray(ids)||ids.length<2||ids.length>12)throw new LibraryError('invalid_selection','Выберите от 2 до 12 записей.');const selected=ids.map(id=>index.tracks.find(t=>t.id===id));if(selected.some(t=>!t))throw new LibraryError('track_not_found');const keys=[...new Set(selected.flatMap(t=>t.sources.map(sourceKey)))];if(keys.length>200)throw new LibraryError('library_limit');const set=new Set(keys);const decisions={merges:[...(state.decisions?.merges||[]).filter(g=>!g.every(k=>set.has(k))),keys].slice(-1000),splits:(state.decisions?.splits||[]).filter(p=>!p.every(k=>set.has(k)))};commit(state.providers,decisions);return snapshot();}
+  function splitTrack(id){const t=index.tracks.find(t=>t.id===id);if(!t||t.sources.length<2)return snapshot();const keys=t.sources.map(sourceKey);if(keys.length>100)throw new LibraryError('library_limit','Слишком много источников для одного разделения.');const set=new Set(keys),pairs=[];for(let i=0;i<keys.length;i++)for(let j=i+1;j<keys.length;j++)pairs.push([keys[i],keys[j]]);const decisions={merges:(state.decisions?.merges||[]).map(g=>g.filter(k=>!set.has(k))).filter(g=>g.length>1),splits:[...(state.decisions?.splits||[]),...pairs].slice(-10000)};commit(state.providers,decisions);return snapshot();}
   function exportData(){return copy(state);}
   async function planTransfer({targetService,playlistId,trackIds,name}={}, {signal}={}){
     if(active||planning)throw new LibraryError('transfer_in_progress');
@@ -157,6 +160,6 @@ function createLibrary(file,{getAdapter,now=Date.now,maxTracks=50000,searchConcu
       for(const item of selected)if(item.result==='pending')item.result='not_attempted';return copy(result);
     }finally{progress();signal?.removeEventListener('abort',abort);active=null;}
   }
-  return {snapshot,sync,importData,exportData,planTransfer,executeTransfer,cancelTransfer,inspect:()=>({syncing:[...syncing],transfer:active?.planId||'',planning:!!planning,plans:plans.size})};
+  return {snapshot,tracks:()=>copy(index.tracks),duplicateGroups,mergeTracks,splitTrack,sync,importData,exportData,planTransfer,executeTransfer,cancelTransfer,inspect:()=>({syncing:[...syncing],transfer:active?.planId||'',planning:!!planning,plans:plans.size})};
 }
 module.exports={createLibrary,LibraryError};

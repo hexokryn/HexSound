@@ -104,7 +104,7 @@ function parseImport(text,{format,service='local'}={}){
   if(Array.isArray(data))data={tracks:data};const count={value:0};
   if(data?.schema===1&&data.providers&&typeof data.providers==='object'){
     const providers={};for(const id of SERVICES)if(Object.hasOwn(data.providers,id))providers[id]=jsonProvider(data.providers[id],id,count);
-    if(!count.value)invalid('no_tracks','В резервной копии нет треков.');return {schema:1,providers};
+    if(!count.value)invalid('no_tracks','В резервной копии нет треков.');return {schema:1,providers,...(data.decisions?{decisions:data.decisions}:{})};
   }
   const selected=service==='local'&&SERVICES.includes(data?.service)?data.service:service,provider=jsonProvider(data,selected,count);
   if(!provider.tracks.length)invalid('no_tracks','В файле нет треков для импорта.');return {service:selected,...provider};

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, WebContentsView, ipcMain, nativeTheme, dialog, shell, Tray, Menu, nativeImage, net, safeStorage } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, nativeTheme, dialog, shell, Tray, Menu, nativeImage, net, safeStorage, protocol } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -15,10 +15,14 @@ const {createLibrary}=require('./library/index.cjs');
 const {createServiceWindows,allowed:providerURL,providers}=require('./service-windows.cjs');
 
 app.setName('HexSound');
+protocol.registerSchemesAsPrivileged([{scheme:'hexmedia',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true,corsEnabled:true}}]);
+const {createExperience}=require('./features/runtime.cjs');
+let experience;const nativePages=['library','services','transfer','wave','queue','smart','local','duplicates','listening','jobs'];
 const layoutTest=process.argv.includes('--layout-test');
 const visualTest=process.argv.includes('--effects-test');
+const experienceTest=process.argv.includes('--experience-test');
 const libraryTest=process.argv.includes('--library-test');
-const smoke = process.argv.includes('--smoke-test')||layoutTest||visualTest||libraryTest;
+const smoke = process.argv.includes('--smoke-test')||layoutTest||visualTest||libraryTest||experienceTest;
 if (smoke) app.setPath('userData', path.join(app.getPath('temp'), 'hexsound-smoke-' + process.pid));
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 const lyricsService=createLyricsService(path.join(app.getPath('userData'),'lyrics'),{fetcher:(url,init)=>net.fetch(url,init)});
@@ -77,6 +81,7 @@ async function applyTheme() {
 }
 function status(value) { send('status', value); }
 async function navigate(route) {
+  await experience?.stopNative();
   nativePage='music';playbackProvider='soundcloud';nextPoll=0;
   sidebarOpen=false;send('sidebar',false);
   const routes = { discover: '/discover', feed: '/feed', library: '/you/library', likes: '/you/likes', playlists: '/you/sets', history: '/you/history', upload: '/upload', account: '/you' };
@@ -139,17 +144,18 @@ async function pollPlayback(){
   if(polling||!view||view.webContents.isDestroyed()||Date.now()<nextPoll)return;
   nextPoll=Date.now()+(nativePage==='player'?200:650);
   polling=true;
-  try{const raw=playbackProvider==='soundcloud'?(isSoundCloud(view.webContents.getURL())?await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.snapshot()'):null):await serviceWindows.snapshot(playbackProvider);if(!raw)return;const next=playerSnapshot(raw);if(JSON.stringify(next)!==JSON.stringify(playback)){playback=next;send('playback',playback);}}catch{}finally{polling=false;}
+  try{const raw=playbackProvider==='native'?await experience.snapshot():playbackProvider==='soundcloud'?(isSoundCloud(view.webContents.getURL())?await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.snapshot()'):null):await serviceWindows.snapshot(playbackProvider);if(!raw)return;const next=playerSnapshot(raw,{trustedMedia:playbackProvider==='native'});if(JSON.stringify(next)!==JSON.stringify(playback)){playback=next;send('playback',playback);}await experience?.tick(playback,lyricsService);}catch{}finally{polling=false;}
 }
 async function createWindow() {
   win = new BrowserWindow({ width: 1440, height: 960, minWidth: 360, minHeight: 480,
     title: 'HexSound', icon: path.join(__dirname, 'assets', process.platform==='linux'?'icon.png':'icon.ico'), backgroundColor: dark() ? '#18181a' : '#fafafc',
     frame: false, show: false,
-    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true }
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling:false }
   });
   services=createServiceHub({directory:path.join(app.getPath('userData'),'services'),safeStorage,fetcher:(url,init)=>net.fetch(url,init),openExternal:url=>shell.openExternal(url),onChange:value=>send('services',value)});
   library=createLibrary(path.join(app.getPath('userData'),'library.json'),{getAdapter:id=>services.getAdapter(id)});
-  serviceWindows=createServiceWindows({BrowserWindow,parent:win,onActive:id=>{playbackProvider=id;nextPoll=0;pollPlayback();},onChange:()=>send('service-windows',serviceWindows.status()),onExternal:confirmExternal,isQuitting:()=>quitting});
+  serviceWindows=createServiceWindows({BrowserWindow,parent:win,onActive:id=>{experience?.stopNative();playbackProvider=id;nextPoll=0;pollPlayback();},onChange:()=>send('service-windows',serviceWindows.status()),onExternal:confirmExternal,isQuitting:()=>quitting});
+  experience=createExperience({directory:app.getPath('userData'),services:new Proxy({},{get:(_,key)=>services[key]}),library:new Proxy({},{get:(_,key)=>library[key]}),send,handle,win,BrowserWindow,protocol,dialog,Visual,getSettings:()=>({...settings,resolvedDark:dark()}),getPlayback:()=>playback,openSource,activateNative:async()=>{if(playbackProvider!=='native'&&playbackProvider!=='soundcloud'&&playback.track.playing)await serviceWindows.control(playbackProvider,'toggle');playbackProvider='native';nextPoll=0;view.webContents.executeJavaScript("document.querySelectorAll('audio,video').forEach(el=>el.pause())").catch(()=>{});},openPlayer:()=>{nativePage='player';settingsOpen=true;layout();send('page','player');},control:playerControl});
   Menu.setApplicationMenu(null);
   win.webContents.on('will-navigate', e => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -191,12 +197,13 @@ async function createWindow() {
   win.on('maximize', () => send('maximized', true));
   win.on('unmaximize', () => send('maximized', false));
   win.on('close', e => { if (!quitting && settings.closeToTray && tray && !smoke) { e.preventDefault(); win.hide(); } });
-  win.on('closed', () => {services.dispose();libraryOperation?.abort();serviceWindows.close();if (!view.webContents.isDestroyed()) view.webContents.close(); for (const child of authWindows) child.destroy(); });
+  win.on('closed', () => {experience?.dispose();services.dispose();libraryOperation?.abort();serviceWindows.close();if (!view.webContents.isDestroyed()) view.webContents.close(); for (const child of authWindows) child.destroy(); });
   await win.loadFile(path.join(__dirname, 'index.html'));
   await applyTheme();
   layout();
   win.show();
   try{createTray();}catch{tray=undefined;}
+  if(experienceTest){runExperienceAudit();return;}
   if(libraryTest){runLibraryAudit();return;}
   if(layoutTest){runLayoutAudit();return;}
   if(smoke)navigate('discover');else{settingsOpen=true;layout();send('page','library');view.webContents.loadURL(currentURL).catch(()=>{});}
@@ -209,7 +216,7 @@ function handle(name, fn) { ipcMain.handle(name, async (event, ...args) => { if 
 handle('get-settings', () => ({ ...settings, resolvedDark: dark(), version: app.getVersion(), skipIntro:smoke,nativeHome:!smoke }));
 handle('intro-complete',animate=>{const first=introOpen;introOpen=false;layout();if(first&&animate&&settings.motion&&isSoundCloud(view.webContents.getURL()))view.webContents.executeJavaScript(`document.documentElement.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],{duration:650,easing:'cubic-bezier(.22,1,.36,1)'})`).catch(()=>{});return true;});
 handle('get-playback',()=>playback);
-handle('native-page',name=>{if(!['library','services','transfer'].includes(name))throw Error('Неизвестный экран.');nativePage=name;settingsOpen=true;sidebarOpen=false;send('sidebar',false);layout();send('page',name);return true;});
+handle('native-page',name=>{if(!nativePages.includes(name))throw Error('Неизвестный экран.');nativePage=name;settingsOpen=true;sidebarOpen=false;send('sidebar',false);layout();send('page',name);return true;});
 handle('services-status',()=>services.statuses());
 handle('services-configure',(id,patch)=>services.configure(id,patch));
 handle('services-connect',id=>services.connect(id));
@@ -228,10 +235,11 @@ handle('services-web',(id,options)=>openSource(id,options&&typeof options==='obj
 handle('services-browser',id=>{if(!Object.hasOwn(providers,id))throw Error('Неизвестный сервис.');return shell.openExternal(providers[id].home);});
 handle('services-help',()=>shell.openExternal('https://github.com/hexokryn/HexSound/blob/main/docs/services.md'));
 handle('services-search',(id,query)=>{if(typeof query!=='string'||!query.trim()||query.length>300)throw Error('Введите запрос до 300 символов.');return services.search(id,query.trim());});
-handle('library-list',options=>library.snapshot(options&&typeof options==='object'?options:{}));
+handle('library-list',options=>{const value=library.snapshot(options&&typeof options==='object'?options:{});value.tracks=value.tracks.map(experience.decorate);return value;});
 handle('library-sync',async id=>{try{const value=await library.sync(id);send('library-updated');return value;}finally{send('library-updated');}});
-handle('library-plan',async options=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{return await library.planTransfer(options,{signal:controller.signal});}finally{if(libraryOperation===controller)libraryOperation=null;}});
-handle('library-transfer',async options=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{return await library.executeTransfer(options,{signal:controller.signal,onProgress:value=>send('transfer-progress',value)});}finally{if(libraryOperation===controller)libraryOperation=null;}});
+handle('library-plan',async options=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{const plan=await library.planTransfer(options,{signal:controller.signal});experience.plans.set(plan.id,plan);return plan;}finally{if(libraryOperation===controller)libraryOperation=null;}});
+handle('library-transfer',async options=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{const plan=experience.plans.get(options?.planId);if(!plan)throw Error('Найдите совпадения снова.');const result=await experience.journal.start(plan,options.choices,opts=>library.executeTransfer(options,opts),{signal:controller.signal,onProgress:value=>send('transfer-progress',value)});experience.plans.delete(plan.id);return result;}finally{if(libraryOperation===controller)libraryOperation=null;}});
+handle('transfer-resume',async id=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{return await experience.journal.resume(id,{signal:controller.signal,onProgress:value=>send('transfer-progress',value)});}finally{libraryOperation=null;}});
 handle('library-cancel',()=>{libraryOperation?.abort();library.cancelTransfer();return true;});
 handle('library-import',async service=>{
   if(!['local','spotify','soundcloud','youtube','yandex'].includes(service))throw Error('Неизвестный источник импорта.');
@@ -245,14 +253,16 @@ handle('library-export',async()=>{const chosen=await dialog.showSaveDialog(win,{
 handle('library-save-track',(service,track)=>{if(!Object.hasOwn(providers,service)||!track||typeof track!=='object')throw Error('Некорректный трек.');const value=library.importData({service,tracks:[track],playlists:[]});send('library-updated');return value;});
 handle('player-open',()=>{nativePage='player';nextPoll=0;settingsOpen=true;sidebarOpen=false;send('sidebar',false);layout();send('page','player');pollPlayback();return true;});
 handle('sidebar-open',open=>{sidebarOpen=!!open&&win.getContentSize()[0]<640;layout();send('sidebar',sidebarOpen);return sidebarOpen;});
-handle('player-control',async(action,value)=>{
+async function playerControl(action,value){
   if(!['toggle','previous','next','shuffle','repeat','like','seek','volume'].includes(action))return false;
   if(['seek','volume'].includes(action)&&!Number.isFinite(value))return false;
+  const own=await experience.playerControl(action,value);if(own!==null){nextPoll=0;setTimeout(pollPlayback,20);return own;}
   if(playbackProvider!=='soundcloud'){const result=await serviceWindows.control(playbackProvider,action,value);nextPoll=0;setTimeout(pollPlayback,50);return result;}
   if(!isSoundCloud(view.webContents.getURL()))return false;
   const result=await view.webContents.executeJavaScript(remotePlayerSource+`;window.HexRemotePlayer.control(${JSON.stringify(action)},${JSON.stringify(Number.isFinite(value)?value:null)})`,true).catch(()=>false);
   setTimeout(pollPlayback,120);return result;
-});
+}
+handle('player-control',playerControl);
 handle('lyrics',async expected=>{
   const track={...playback.track};const trackKey=[track.url,track.title,track.artist,Math.round(track.duration||0)].join('|');
   if(typeof expected==='string'&&expected!==trackKey)return{status:'stale',trackKey};
@@ -285,7 +295,7 @@ handle('window', action => {
   if (action === 'close') win.close();
 });
 handle('history', direction => {if(nativePage!=='music')return false; const h = view.webContents.navigationHistory; if (direction === 'back' && h.canGoBack()) h.goBack(); if (direction === 'forward' && h.canGoForward()) h.goForward(); });
-handle('reload', () => {if(['library','services','transfer'].includes(nativePage)){send('library-updated');send('services',services.statuses());return true;} settingsOpen = false; layout(); send('page','music'); view.webContents.loadURL(currentURL).catch(() => {}); });
+handle('reload', () => {if(nativePages.includes(nativePage)){send('library-updated');send('services',services.statuses());return true;} settingsOpen = false; layout(); send('page','music'); view.webContents.loadURL(currentURL).catch(() => {}); });
 handle('open-browser', () => {const url=playbackProvider==='soundcloud'?currentURL:serviceWindows.currentURL(playbackProvider);if(providerURL(playbackProvider,url))return shell.openExternal(url); });
 handle('login', async () => {
   settingsOpen = false; layout(); send('page', 'music');
@@ -312,13 +322,35 @@ handle('logout', async () => {
   await view.webContents.session.clearCache();
   navigate('discover'); return true;
 });
-app.on('before-quit', () => { quitting = true;clearInterval(pollTimer); });
+app.on('before-quit', () => { quitting = true;clearInterval(pollTimer);experience?.dispose(); });
 app.on('window-all-closed', () => app.quit());
 nativeTheme.on('updated', () => { if (win) applyTheme(); });
 if (!smoke && !app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (win) { win.show(); if (win.isMinimized()) win.restore(); win.focus(); } });
   app.whenReady().then(createWindow);
+}
+
+async function runExperienceAudit(){
+  const out=path.join(app.isPackaged?app.getPath('temp'):path.join(__dirname,'..','artifacts'),'hexsound-experience-0.8');fs.mkdirSync(out,{recursive:true});
+  const run=code=>win.webContents.executeJavaScript(code),delay=ms=>new Promise(r=>setTimeout(r,ms));const errors=[];win.webContents.on('console-message',event=>{if(event.level==='error')errors.push(event.message);});
+  try{
+    settingsOpen=true;introOpen=false;layout();await run(`window.hex.saveSettings({theme:'dark',palette:'obsidian',lyricsOnline:false})`);
+    const folder=path.join(app.getPath('userData'),'audit-music');fs.mkdirSync(folder,{recursive:true});const rate=22050,seconds=8,samples=rate*seconds,bytes=samples*2,wav=Buffer.alloc(44+bytes);wav.write('RIFF');wav.writeUInt32LE(36+bytes,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*2,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(bytes,40);for(let i=0;i<samples;i++)wav.writeInt16LE(Math.round(Math.sin(i*2*Math.PI*220/rate)*1000),44+i*2);fs.writeFileSync(path.join(folder,'Night drive.wav'),wav);fs.writeFileSync(path.join(folder,'Morning light.wav'),wav);
+    await experience.local.scan(folder);library.importData({service:'local',tracks:experience.local.raw().map(t=>({...t,artist:'Hex Sessions'})),playlists:[]},{replace:true});
+    const savedStatuses=services.statuses,savedAdapter=services.getAdapter;services.statuses=()=>[{id:'soundcloud',name:'SoundCloud',connected:true,capabilities:{search:true}}];services.getAdapter=()=>({searchTracks:async()=>Array.from({length:9},(_,i)=>({id:'demo-'+i,title:['Glass horizon','After the rain','Soft focus','Blue hour','Second light','Still awake','Into the night','Quiet city','Morning glow'][i],artist:'Hex Sessions',duration:180+i*4,url:'https://soundcloud.com/demo/'+i}))});
+    await run(`window.hex.openNative('wave')`);await run(`window.hex.experience('wave-generate')`);await delay(250);if(experience.wave.snapshot().items.length!==3)throw Error('Wave discovery or artist diversity failed');
+    await run('window.HexExperienceUI.refresh()');win.setContentSize(1440,900);await delay(150);fs.writeFileSync(path.join(out,'wave.png'),(await win.capturePage()).toPNG());services.statuses=savedStatuses;services.getAdapter=savedAdapter;
+    const tracks=library.tracks();await run(`window.hex.experience('queue-add',{tracks:${JSON.stringify(tracks)}})`);const first=experience.queue.snapshot().entries[0];await run(`window.hex.experience('queue-play',{id:${JSON.stringify(first.id)}})`);await delay(700);const sample=await experience.snapshot();if(!sample?.track.playing||sample.track.position<.2)throw Error('Actual native WAV did not play: '+JSON.stringify(sample));
+    playback=playerSnapshot(sample,{trustedMedia:true});experience.collection.record(playback,tracks[0]);await delay(300);playback=playerSnapshot(await experience.snapshot(),{trustedMedia:true});experience.collection.record(playback,tracks[0]);if(!experience.collection.history().recent.length)throw Error('History failed');
+    await run(`window.hex.playerControl('seek',7.9)`);await delay(500);if(experience.queue.snapshot().cursor!==1)throw Error('Native end did not advance queue');await run(`window.hex.playerControl('previous')`);await run(`window.hex.playerControl('seek',2)`);const sought=await experience.snapshot();if(Math.abs(sought.track.position-2)>.4)throw Error('Native seeking failed');await run(`window.hex.playerControl('toggle')`);if((await experience.snapshot()).track.playing)throw Error('Native pause failed');await run(`window.hex.playerControl('next')`);if(experience.queue.snapshot().cursor!==1)throw Error('Unified queue next failed');
+    await run(`window.hex.experience('mini')`);await experience.tick(playback,lyricsService);const mini=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().endsWith('/mini.html'));if(!mini)throw Error('Mini-player did not load');if(!(await mini.webContents.executeJavaScript('typeof window.hex==="undefined" && !!window.mini')))throw Error('Mini-player received privileged API');
+    experience.collection.setTags(tracks[0].id,['вечер']);experience.collection.saveSmart({name:'Вечер',rules:{tags:['вечер']}});if(experience.collection.evaluate(tracks,{tags:['вечер']}).length!==1)throw Error('Smart playlist failed');
+    const sizes=[[360,640],[640,720],[1024,768],[1440,900],[2560,1440]];const audits=[];
+    for(const [width,height] of sizes){win.setContentSize(width,height);await delay(450);for(const page of ['wave','queue','smart','local','duplicates','listening','jobs']){await run(`window.hex.openNative('${page}')`);await delay(70);const result=await run(`(()=>{const e=document.querySelector('#native-${page}');return {visible:!e.hidden,overflow:Math.max(document.documentElement.scrollWidth-innerWidth,e.scrollWidth-e.clientWidth)}})()`);audits.push({page,width,...result});if(!result.visible||result.overflow>2)throw Error('Layout failed: '+JSON.stringify(audits.at(-1)));if(width===360&&page==='wave')fs.writeFileSync(path.join(out,'wave-mobile.png'),(await win.capturePage()).toPNG());}}
+    await run(`window.hex.playerControl('toggle')`);if(errors.some(e=>/Content Security|Uncaught|not defined|Failed to load resource/i.test(e)))throw Error('Renderer errors: '+errors.join('\n'));
+    fs.writeFileSync(path.join(out,'audit.json'),JSON.stringify({nativeAudio:true,seek:true,queue:true,mini:true,smart:true,wave:true,audits,errors},null,2));console.log('EXPERIENCE_AUDIT_OK '+out);app.exit(0);
+  }catch(error){console.error('EXPERIENCE_AUDIT_FAILED',error.stack);app.exit(1);}
 }
 
 async function runLibraryAudit(){

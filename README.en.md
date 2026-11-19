@@ -7,21 +7,31 @@ HexSound is a unified music library for Windows and Linux. Tracks and playlists 
 
 ![HexSound unified library](docs/screenshots/library.png)
 
+## Personal radio and collection tools
+
+![HexSound personal radio](docs/screenshots/wave.png)
+
+“My Wave” finds catalogue tracks from your library's artists and related recordings, with a reason shown for each suggestion. Choose a catalogue, adjust discovery, like tracks or exclude them. New selections require a connected catalogue API. Selection logic belongs to HexSound.
+
+Version 0.8 also adds a persistent queue with drag and drop, an always-on-top mini-player, local music folders, tags, rule-based playlists, manual duplicate decisions and local listening statistics. Interrupted transfers can resume after verifying the destination playlist.
+
+The [feature guide](docs/experience.md) describes these workflows in Russian.
+
 ## Download
 
 | Platform | Build | Download |
 | :--- | :--- | :--- |
-| Windows x64 | Setup with a folder picker and shortcuts | [HexSound-0.7.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-setup.exe) |
-| Windows x64 | Portable, no installation | [HexSound-0.7.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-portable.exe) |
-| Linux x64 | AppImage | [HexSound-0.7.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x86_64.AppImage) |
-| Linux x64 | DEB package | [HexSound-0.7.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-amd64.deb) |
-| Linux x64 | tar.gz archive | [HexSound-0.7.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.7.0/HexSound-0.7.0-linux-x64.tar.gz) |
+| Windows x64 | Setup with a folder picker and shortcuts | [HexSound-0.8.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-setup.exe) |
+| Windows x64 | Portable, no installation | [HexSound-0.8.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-portable.exe) |
+| Linux x64 | AppImage | [HexSound-0.8.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-x86_64.AppImage) |
+| Linux x64 | DEB package | [HexSound-0.8.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-amd64.deb) |
+| Linux x64 | tar.gz archive | [HexSound-0.8.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-x64.tar.gz) |
 
 Make the AppImage executable before launching it:
 
 ```sh
-chmod +x HexSound-0.7.0-linux-x86_64.AppImage
-./HexSound-0.7.0-linux-x86_64.AppImage
+chmod +x HexSound-0.8.0-linux-x86_64.AppImage
+./HexSound-0.8.0-linux-x86_64.AppImage
 ```
 
 If FUSE is unavailable, the [Linux guide](docs/linux.md) describes how to extract and run the AppImage. It also covers dependencies and system secret storage.
@@ -73,7 +83,7 @@ Lyrics from [LRCLIB](https://lrclib.net) or a local LRC file follow line timesta
 
 Appearance settings include 32 themes, light and dark modes, nine animated backgrounds and custom images. Artwork motion, sidebar visibility and animations can be changed separately.
 
-Library browsing, search and transfer use HexSound's own interface. Playback still uses official web players, including their DRM handling. Audio availability depends on the service, region and subscription; unsupported player commands are disabled. A complete replacement for every provider website screen isn't implemented.
+Library browsing, search, radio and transfers use HexSound's own interface. Local files and available SoundCloud API streams use a native audio engine with automatic queue advancement. SoundCloud may restrict a stream or provide a preview. Other sources use official web players, including DRM handling; automatic playback and controls depend on the website. Not every provider website screen is replaced.
 
 ## Development and checks
 
@@ -87,6 +97,7 @@ npm start
 ```sh
 npm test
 npm run check:library
+npm run check:experience
 ```
 
 Build on the corresponding platform:

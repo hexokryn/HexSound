@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('hex', {
+  experience:(action,input)=>ipcRenderer.invoke('experience',action,input),
+  resumeTransfer:id=>ipcRenderer.invoke('transfer-resume',id),
+  audioEvent:event=>ipcRenderer.invoke('audio-event',event),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   introComplete:animate=>ipcRenderer.invoke('intro-complete',animate),
   getPlayback:()=>ipcRenderer.invoke('get-playback'),
@@ -41,7 +44,7 @@ contextBridge.exposeInMainWorld('hex', {
   clearCache: () => ipcRenderer.invoke('clear-cache'),
   logout: () => ipcRenderer.invoke('logout'),
   on: (channel, callback) => {
-    if (!['settings', 'status', 'location', 'page', 'maximized', 'focus-search','playback','sidebar','services','service-windows','library-updated','transfer-progress'].includes(channel)) return;
+    if (!['settings', 'status', 'location', 'page', 'maximized', 'focus-search','playback','sidebar','services','service-windows','library-updated','transfer-progress','queue','wave','local-progress','transfer-jobs','feature-notice'].includes(channel)) return;
     const listener = (_, value) => callback(value);
     ipcRenderer.on(channel, listener);
     return () => ipcRenderer.removeListener(channel, listener);

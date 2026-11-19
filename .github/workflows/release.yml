@@ -39,12 +39,26 @@ jobs:
       - name: Verify native Linux interface
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --library-test
+      - name: Verify library radio and audio engine
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron . --experience-test
       - name: Build Windows
         if: runner.os == 'Windows'
         run: npm run dist -- --publish never
+      - name: Verify packaged Windows application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $application = Start-Process -FilePath 'release/win-unpacked/HexSound.exe' -ArgumentList '--experience-test' -Wait -PassThru -RedirectStandardOutput 'experience.log' -RedirectStandardError 'experience-error.log'
+          Get-Content experience.log
+          Get-Content experience-error.log
+          exit $application.ExitCode
       - name: Build Linux
         if: runner.os == 'Linux'
         run: npm run dist:linux -- --publish never
+      - name: Verify packaged Linux application
+        if: runner.os == 'Linux'
+        run: xvfb-run -a ./release/linux-unpacked/hexsound --experience-test
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: hexsound-${{ runner.os }}
