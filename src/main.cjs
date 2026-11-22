@@ -164,7 +164,7 @@ async function createWindow() {
   webDiscovery=require('./web-discovery.cjs').createWebDiscovery({BrowserWindow,parent:win});
   experience=createExperience({ensureLibrary:()=>syncSource('soundcloud'),webDiscovery,directory:app.getPath('userData'),services:new Proxy({},{get:(_,key)=>services[key]}),library:new Proxy({},{get:(_,key)=>library[key]}),send,handle,win,BrowserWindow,protocol,dialog,Visual,getSettings:()=>({...settings,resolvedDark:dark()}),getPlayback:()=>playback,openSource,activateNative:async()=>{if(playbackProvider!=='native'&&playbackProvider!=='soundcloud'&&playback.track.playing)await serviceWindows.control(playbackProvider,'toggle');playbackProvider='native';nextPoll=0;view.webContents.executeJavaScript("document.querySelectorAll('audio,video').forEach(el=>el.pause())").catch(()=>{});},openPlayer:()=>{nativePage='player';settingsOpen=true;layout();send('page','player');},control:playerControl});
   sessionLibrary=createSessionLibrary({BrowserWindow,parent:win,directory:app.getPath('userData'),onImport:document=>{library.importData(document);send('library-updated');},onChange:()=>send('services',publicServices())});
-  updates=createUpdates({version:app.getVersion(),directory:path.join(app.getPath('userData'),'updates'),packaged:app.isPackaged&&!smoke,fetcher:(url,init)=>net.fetch(url,init),onChange:value=>send('updates',value),install:installUpdate});
+  updates=createUpdates({version:app.getVersion(),directory:path.join(app.getPath('userData'),'updates'),packaged:app.isPackaged&&!smoke,onChange:value=>send('updates',value),install:installUpdate});
   Menu.setApplicationMenu(null);
   win.webContents.on('will-navigate', e => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));

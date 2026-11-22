@@ -37,6 +37,17 @@ jobs:
       # Canonical-path tests use native realpath on Windows and Linux.
       - name: Test
         run: npm test
+      - name: Verify GitHub update redirects in Electron (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron scripts/check-update-transport.cjs
+      - name: Verify GitHub update redirects in Electron (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $application = Start-Process -WindowStyle Hidden -FilePath 'node_modules/electron/dist/electron.exe' -ArgumentList 'scripts/check-update-transport.cjs' -Wait -PassThru -RedirectStandardOutput 'update-transport.log' -RedirectStandardError 'update-transport-error.log'
+          Get-Content update-transport.log
+          Get-Content update-transport-error.log
+          exit $application.ExitCode
       - name: Verify native Linux interface
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --library-test

@@ -7,13 +7,13 @@ HexSound is a unified music library for Windows and Linux. Tracks and playlists 
 
 ![HexSound unified library](docs/screenshots/library.png)
 
-Version 0.9.2 unifies navigation, moves connection/transfer tools into Settings, adds SoundCloud web-session import, eight background effects and a verified startup update flow. The memory improvements from 0.8.1 remain.
+Version 0.9.3 unifies navigation, moves connection/transfer tools into Settings, adds SoundCloud web-session import, eight background effects and a verified startup update flow. The memory improvements from 0.8.1 remain.
 
 ## Personal radio and collection tools
 
 ![HexSound personal radio](docs/screenshots/wave.png)
 
-“My Wave” finds catalogue tracks from your library's artists and related recordings, with a reason shown for each suggestion. Choose a catalogue, adjust discovery, like tracks or exclude them. New selections require a connected catalogue API. Selection logic belongs to HexSound.
+“My Wave” finds catalogue tracks from your library's artists and related recordings, with a reason shown for each suggestion. Choose a catalogue, adjust discovery, like tracks or exclude them. SoundCloud discovery uses the normal web session without API keys; if the catalogue is unavailable, radio plays a clearly labelled library mix. Other catalogues require an API connection. Selection logic belongs to HexSound.
 
 Version 0.8 also adds a persistent queue with drag and drop, an always-on-top mini-player, local music folders, tags, rule-based playlists, manual duplicate decisions and local listening statistics. Interrupted transfers can resume after verifying the destination playlist.
 
@@ -23,17 +23,17 @@ The [feature guide](docs/experience.md) describes these workflows in Russian.
 
 | Platform | Build | Download |
 | :--- | :--- | :--- |
-| Windows x64 | Setup with a folder picker and shortcuts | [HexSound-0.9.2-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.2/HexSound-0.9.2-setup.exe) |
-| Windows x64 | Portable, no installation | [HexSound-0.9.2-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.2/HexSound-0.9.2-portable.exe) |
-| Linux x64 | AppImage | [HexSound-0.9.2-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.9.2/HexSound-0.9.2-linux-x86_64.AppImage) |
-| Linux x64 | DEB package | [HexSound-0.9.2-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.9.2/HexSound-0.9.2-linux-amd64.deb) |
-| Linux x64 | tar.gz archive | [HexSound-0.9.2-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.9.2/HexSound-0.9.2-linux-x64.tar.gz) |
+| Windows x64 | Setup with a folder picker and shortcuts | [HexSound-0.9.3-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.3/HexSound-0.9.3-setup.exe) |
+| Windows x64 | Portable, no installation | [HexSound-0.9.3-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.3/HexSound-0.9.3-portable.exe) |
+| Linux x64 | AppImage | [HexSound-0.9.3-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.9.3/HexSound-0.9.3-linux-x86_64.AppImage) |
+| Linux x64 | DEB package | [HexSound-0.9.3-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.9.3/HexSound-0.9.3-linux-amd64.deb) |
+| Linux x64 | tar.gz archive | [HexSound-0.9.3-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.9.3/HexSound-0.9.3-linux-x64.tar.gz) |
 
 Make the AppImage executable before launching it:
 
 ```sh
-chmod +x HexSound-0.9.2-linux-x86_64.AppImage
-./HexSound-0.9.2-linux-x86_64.AppImage
+chmod +x HexSound-0.9.3-linux-x86_64.AppImage
+./HexSound-0.9.3-linux-x86_64.AppImage
 ```
 
 If FUSE is unavailable, the [Linux guide](docs/linux.md) describes how to extract and run the AppImage. It also covers dependencies and system secret storage.
