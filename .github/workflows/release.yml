@@ -34,6 +34,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      # Canonical-path tests use native realpath on Windows and Linux.
       - name: Test
         run: npm test
       - name: Verify native Linux interface
