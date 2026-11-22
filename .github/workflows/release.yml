@@ -46,6 +46,7 @@ jobs:
       - name: Verify lazy startup and record process memory
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --memory-test --memory-label=linux
+      # Settings subpages keep the active tab visible on small windows.
       - name: Verify unified interface and update prompt
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --unified-test

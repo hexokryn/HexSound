@@ -7,7 +7,7 @@ HexSound — единая музыкальная библиотека для Win
 
 ![Единая библиотека HexSound](docs/screenshots/library.png)
 
-В 0.9.0 навигация объединена вокруг музыки: подключения, перенос и обслуживание находятся в настройках. Добавлены синхронизация SoundCloud из веб-входа, восемь фонов и проверяемые обновления на экране интро. Оптимизации памяти 0.8.1 сохранены.
+В 0.9.1 навигация объединена вокруг музыки: подключения, перенос и обслуживание находятся в настройках. Добавлены синхронизация SoundCloud из веб-входа, восемь фонов и проверяемые обновления на экране интро. Оптимизации памяти 0.8.1 сохранены.
 
 ## Моя волна и новая медиатека
 
@@ -23,22 +23,22 @@ HexSound — единая музыкальная библиотека для Win
 
 | Платформа | Вариант | Загрузка |
 | :--- | :--- | :--- |
-| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.9.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-setup.exe) |
-| Windows x64 | Portable без установки | [HexSound-0.9.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-portable.exe) |
-| Linux x64 | AppImage | [HexSound-0.9.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-linux-x86_64.AppImage) |
-| Linux x64 | Пакет DEB | [HexSound-0.9.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-linux-amd64.deb) |
-| Linux x64 | Архив tar.gz | [HexSound-0.9.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-linux-x64.tar.gz) |
+| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.9.1-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.1/HexSound-0.9.1-setup.exe) |
+| Windows x64 | Portable без установки | [HexSound-0.9.1-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.1/HexSound-0.9.1-portable.exe) |
+| Linux x64 | AppImage | [HexSound-0.9.1-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.9.1/HexSound-0.9.1-linux-x86_64.AppImage) |
+| Linux x64 | Пакет DEB | [HexSound-0.9.1-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.9.1/HexSound-0.9.1-linux-amd64.deb) |
+| Linux x64 | Архив tar.gz | [HexSound-0.9.1-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.9.1/HexSound-0.9.1-linux-x64.tar.gz) |
 
 Для AppImage разрешите запуск файла:
 
 ```sh
-chmod +x HexSound-0.9.0-linux-x86_64.AppImage
-./HexSound-0.9.0-linux-x86_64.AppImage
+chmod +x HexSound-0.9.1-linux-x86_64.AppImage
+./HexSound-0.9.1-linux-x86_64.AppImage
 ```
 
 Если FUSE недоступен, в [инструкции для Linux](docs/linux.md) описан запуск через извлечение AppImage. Там же указаны зависимости и настройка системного хранилища секретов.
 
-Перед обновлением завершите предыдущую версию через **трей → Выйти**. В Windows профиль хранится в `%APPDATA%/HexSound`, в том числе у Portable. Начиная с 0.9.0 приложение проверяет обновления на старте: можно обновиться, пропустить или прочитать изменения. Windows EXE не подписаны цифровой подписью.
+Перед обновлением завершите предыдущую версию через **трей → Выйти**. В Windows профиль хранится в `%APPDATA%/HexSound`, в том числе у Portable. Начиная с 0.9.1 приложение проверяет обновления на старте: можно обновиться, пропустить или прочитать изменения. Windows EXE не подписаны цифровой подписью.
 
 ## Своя медиатека
 

@@ -1,6 +1,6 @@
 {
   "name": "hexsound",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Music library, personal radio and player for Windows and Linux",
   "main": "src/main.cjs",
   "author": "hexokryn",
