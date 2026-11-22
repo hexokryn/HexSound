@@ -20,9 +20,10 @@ const {createExperience}=require('./features/runtime.cjs');
 let experience;const nativePages=['library','services','transfer','wave','queue','smart','local','duplicates','listening','jobs'];
 const layoutTest=process.argv.includes('--layout-test');
 const visualTest=process.argv.includes('--effects-test');
+const memoryTest=process.argv.includes('--memory-test');
 const experienceTest=process.argv.includes('--experience-test');
 const libraryTest=process.argv.includes('--library-test');
-const smoke = process.argv.includes('--smoke-test')||layoutTest||visualTest||libraryTest||experienceTest;
+const smoke = process.argv.includes('--smoke-test')||layoutTest||visualTest||libraryTest||experienceTest||memoryTest;
 if (smoke) app.setPath('userData', path.join(app.getPath('temp'), 'hexsound-smoke-' + process.pid));
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 const lyricsService=createLyricsService(path.join(app.getPath('userData'),'lyrics'),{fetcher:(url,init)=>net.fetch(url,init)});
@@ -203,10 +204,13 @@ async function createWindow() {
   layout();
   win.show();
   try{createTray();}catch{tray=undefined;}
+  if(memoryTest){runMemoryAudit();return;}
   if(experienceTest){runExperienceAudit();return;}
   if(libraryTest){runLibraryAudit();return;}
   if(layoutTest){runLayoutAudit();return;}
-  if(smoke)navigate('discover');else{settingsOpen=true;layout();send('page','library');view.webContents.loadURL(currentURL).catch(()=>{});}
+  // The native home does not need a second, hidden SoundCloud application.
+  // Its persistent session is loaded by navigate() when the user opens it.
+  if(smoke)navigate('discover');else{settingsOpen=true;layout();send('page','library');}
   pollTimer=setInterval(pollPlayback,200);pollTimer.unref();
   if(visualTest)runVisualAudit();else if (smoke) runSmoke();
 }
@@ -643,4 +647,24 @@ async function runVisualAudit(){
     results.launch='symbol, name reveal and shell passed';
     fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(results,null,2));console.log('VISUAL PASS',JSON.stringify(results));quitting=true;app.quit();
   }catch(error){console.error('VISUAL FAIL',error);fs.writeFileSync(path.join(out,'report.json'),JSON.stringify({...results,error:String(error)},null,2));quitting=true;app.exit(1);}
+}
+
+async function runMemoryAudit(){
+  const delay=ms=>new Promise(r=>setTimeout(r,ms)),snapshots=[];
+  try{
+    settingsOpen=true;layout();send('page','library');
+    if(process.argv.includes('--memory-remote'))await view.webContents.loadURL(currentURL).catch(()=>{});
+    else if(!['','about:blank'].includes(view.webContents.getURL()))throw Error('Native startup loaded a remote service');
+    for(const stage of ['startup','settled']){
+      await delay(4000);
+      const metrics=app.getAppMetrics().map(({pid,type,memory})=>({pid,type,memory}));
+      const canvas=await win.webContents.executeJavaScript('(()=>{const c=document.querySelector("#hex-atmosphere");return c?{width:c.width,height:c.height,bytes:c.width*c.height*4}:null})()');
+      const workingSetMiB=metrics.reduce((sum,p)=>sum+(p.memory.workingSetSize||0),0)/1024;
+      snapshots.push({stage,remoteURL:view.webContents.getURL(),workingSetMiB,canvas,metrics});
+      console.log('MEMORY_SAMPLE '+JSON.stringify({stage,workingSetMiB,canvas,remoteLoaded:isSoundCloud(view.webContents.getURL())}));
+    }
+    const label=process.argv.find(s=>s.startsWith('--memory-label='))?.split('=')[1]||'audit';
+    const out=path.join(app.isPackaged?app.getPath('temp'):path.join(__dirname,'..','artifacts'),'memory-'+label.replace(/[^a-z0-9-]/gi,'')+'.json');
+    fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify({platform:process.platform,note:'Working sets include shared pages; this sum is not private RAM.',snapshots},null,2));console.log('MEMORY_AUDIT_OK '+out);app.exit(0);
+  }catch(error){console.error(error);app.exit(1);}
 }

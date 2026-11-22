@@ -4,7 +4,7 @@
   audio.addEventListener('ended',()=>notify('ended'));audio.addEventListener('error',()=>notify('error'));audio.addEventListener('loadedmetadata',()=>notify('ready'));
   async function start(value){hls?.destroy();hls=null;audio.pause();audio.removeAttribute('src');audio.load();generation=value.generation;track=value.track;
     if(value.kind==='hls'&&window.Hls?.isSupported()){
-      hls=new Hls({enableWorker:false,maxBufferLength:30,backBufferLength:20});hls.on(Hls.Events.ERROR,(_event,data)=>{if(data.fatal)notify('error');});hls.on(Hls.Events.MANIFEST_PARSED,()=>audio.play().catch(()=>notify('autoplay')));hls.loadSource(value.src);hls.attachMedia(audio);
+      hls=new Hls({enableWorker:false,maxBufferLength:20,maxMaxBufferLength:60,maxBufferSize:4*1024*1024,backBufferLength:15});hls.on(Hls.Events.ERROR,(_event,data)=>{if(data.fatal)notify('error');});hls.on(Hls.Events.MANIFEST_PARSED,()=>audio.play().catch(()=>notify('autoplay')));hls.loadSource(value.src);hls.attachMedia(audio);
     }else{audio.src=value.src;try{await audio.play();}catch{notify('autoplay');}}
     if(navigator.mediaSession){try{navigator.mediaSession.metadata=new MediaMetadata({title:track.title,artist:track.artist,album:track.album||'',artwork:track.artwork?[{src:track.artwork}]:[]});}catch{}for(const [name,action] of [['play','toggle'],['pause','toggle'],['nexttrack','next'],['previoustrack','previous']])navigator.mediaSession.setActionHandler(name,()=>{if(name==='play'&&!audio.paused||name==='pause'&&audio.paused)return;window.hex.playerControl(action);});navigator.mediaSession.setActionHandler('seekto',details=>window.hex.playerControl('seek',details.seekTime));}
     return true;

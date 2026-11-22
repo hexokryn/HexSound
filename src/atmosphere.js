@@ -7,8 +7,12 @@
   function size() {
     if (!canvas) return;
     const rect=canvas.getBoundingClientRect(); width=Math.max(1,rect.width);height=Math.max(1,rect.height);
+    const suspended=!active||document.hidden||config?.effect==='none'||!(config?.intensity>0);
     const dpr=Math.min(window.devicePixelRatio||1,config?.quality==='battery'?1:1.5);
-    canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+    const nextWidth=suspended?1:Math.round(width*dpr),nextHeight=suspended?1:Math.round(height*dpr);
+    if(canvas.width!==nextWidth)canvas.width=nextWidth;
+    if(canvas.height!==nextHeight)canvas.height=nextHeight;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
     draw();
   }
   function glow(x,y,r,color,alpha) {
@@ -16,7 +20,7 @@
     ctx.globalAlpha=alpha;ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
   }
   function draw() {
-    if (!ctx||!config) return;
+    if (!ctx||!config||canvas.width<=1&&canvas.height<=1) return;
     frames++;
     ctx.clearRect(0,0,width,height);
     if(config.effect==='none')return;
@@ -74,7 +78,7 @@
     if(now-last>=interval){clock+=Math.min((now-last)/1000,.1)*config.speed;last=now;draw();}
     raf=requestAnimationFrame(tick);
   }
-  function resume() {cancelAnimationFrame(raf);raf=0;last=performance.now();draw();if(running())raf=requestAnimationFrame(tick);}
+  function resume() {cancelAnimationFrame(raf);raf=0;last=performance.now();size();if(running())raf=requestAnimationFrame(tick);}
   window.HexAtmosphere={
     mount(next) {
       config=next;

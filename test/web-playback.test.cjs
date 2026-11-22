@@ -73,8 +73,9 @@ function windowFixture(){
   class Window extends EventEmitter{
     constructor(options){super();this.options=options;this.webContents=new Contents();this.destroyed=false;windows.push(this);}
     isDestroyed(){return this.destroyed;}
-    show(){}
-    hide(){}
+    show(){this.visible=true;}
+    hide(){this.visible=false;}
+    isVisible(){return !!this.visible;}
     async loadURL(url){this.webContents.url=url;}
     destroy(){this.destroyed=true;this.emit('closed');}
   }
@@ -92,6 +93,13 @@ test('service windows isolate provider sessions and convert failed remote action
   assert.equal(spotify.webContents.openHandler({url:'https://attacker.test'}).action,'deny');
   await assert.rejects(h.services.open('spotify',{url:'https://music.youtube.com'}),/Недопустимая/);
   h.services.close();assert.equal(h.services.status().length,0);assert.equal(spotify.isDestroyed(),true);
+});
+
+test('closing an idle service releases its renderer while playing and reopened windows survive',async()=>{
+  const h=windowFixture();await h.services.open('spotify');let win=h.windows[0];
+  win.webContents.executeJavaScript=async()=>({track:{playing:false}});win.emit('close',{preventDefault(){}});await new Promise(r=>setImmediate(r));assert.equal(win.isDestroyed(),true);
+  await h.services.open('spotify');win=h.windows[1];win.webContents.executeJavaScript=async()=>({track:{playing:true}});win.emit('close',{preventDefault(){}});await new Promise(r=>setImmediate(r));assert.equal(win.isDestroyed(),false);
+  let resolve;win.webContents.executeJavaScript=()=>new Promise(r=>resolve=r);win.emit('close',{preventDefault(){}});win.show();resolve({track:{playing:false}});await new Promise(r=>setImmediate(r));assert.equal(win.isDestroyed(),false);h.services.close();
 });
 
 function remoteFixture({audio=null,filled=25.5,full=100,elapsed='0:10'}={}){

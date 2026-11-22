@@ -42,6 +42,9 @@ jobs:
       - name: Verify library radio and audio engine
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --experience-test
+      - name: Verify lazy startup and record process memory
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron . --memory-test --memory-label=linux
       - name: Build Windows
         if: runner.os == 'Windows'
         run: npm run dist -- --publish never

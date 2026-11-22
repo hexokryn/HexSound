@@ -17,6 +17,6 @@ function createMediaBroker({fetchRemote,local,now=Date.now}={}){
       for(const key of ['content-type','content-length','content-range','accept-ranges']){const value=response.headers.get(key);if(value)headers[key]=value;}return new Response(request.method==='HEAD'?null:response.body,{status:response.status,headers});
     }catch{return new Response('Не удалось прочитать аудио',{status:502,headers:{'Access-Control-Allow-Origin':'*'}});}
   }
-  return {remote,file,cover,handle,clear(){entries.clear();urls.clear();},inspect:()=>({resources:entries.size})};
+  return {remote,file,cover,handle,releaseAudio(keep){const retained=typeof keep==='string'?keep.split('/').at(-1):'';for(const [id,item] of entries)if(id!==retained&&item.kind!=='cover'){entries.delete(id);urls.delete(item.url||item.file);}},clear(){entries.clear();urls.clear();},inspect:()=>({resources:entries.size})};
 }
 module.exports={createMediaBroker,remoteAllowed};

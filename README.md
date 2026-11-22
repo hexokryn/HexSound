@@ -7,6 +7,8 @@ HexSound — единая музыкальная библиотека для Win
 
 ![Единая библиотека HexSound](docs/screenshots/library.png)
 
+В 0.8.1 уменьшен расход памяти: сервисы открываются по запросу, скрытые фоны освобождают canvas-буферы, HLS и медиапрокси ограничены по памяти. Прежний интерфейс сохранён.
+
 ## Моя волна и новая медиатека
 
 ![Моя волна в HexSound](docs/screenshots/wave.png)
@@ -21,17 +23,17 @@ HexSound — единая музыкальная библиотека для Win
 
 | Платформа | Вариант | Загрузка |
 | :--- | :--- | :--- |
-| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.8.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-setup.exe) |
-| Windows x64 | Portable без установки | [HexSound-0.8.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-portable.exe) |
-| Linux x64 | AppImage | [HexSound-0.8.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-x86_64.AppImage) |
-| Linux x64 | Пакет DEB | [HexSound-0.8.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-amd64.deb) |
-| Linux x64 | Архив tar.gz | [HexSound-0.8.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.8.0/HexSound-0.8.0-linux-x64.tar.gz) |
+| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.8.1-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-setup.exe) |
+| Windows x64 | Portable без установки | [HexSound-0.8.1-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-portable.exe) |
+| Linux x64 | AppImage | [HexSound-0.8.1-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-linux-x86_64.AppImage) |
+| Linux x64 | Пакет DEB | [HexSound-0.8.1-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-linux-amd64.deb) |
+| Linux x64 | Архив tar.gz | [HexSound-0.8.1-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-linux-x64.tar.gz) |
 
 Для AppImage разрешите запуск файла:
 
 ```sh
-chmod +x HexSound-0.8.0-linux-x86_64.AppImage
-./HexSound-0.8.0-linux-x86_64.AppImage
+chmod +x HexSound-0.8.1-linux-x86_64.AppImage
+./HexSound-0.8.1-linux-x86_64.AppImage
 ```
 
 Если FUSE недоступен, в [инструкции для Linux](docs/linux.md) описан запуск через извлечение AppImage. Там же указаны зависимости и настройка системного хранилища секретов.

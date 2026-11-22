@@ -26,7 +26,12 @@ function createServiceWindows({BrowserWindow,parent,onActive=()=>{},onChange=()=
       windows.set(id,win);protect(win.webContents,id);
       win.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));win.webContents.session.setPermissionCheckHandler(()=>false);
       win.on('focus',()=>onActive(id));win.on('closed',()=>{windows.delete(id);onChange();});
-      win.on('close',event=>{if(!isQuitting()){event.preventDefault();win.hide();}});
+      win.on('close',event=>{if(!isQuitting()){
+        event.preventDefault();win.hide();
+        // Keep music playing after closing its window, but release an idle SPA.
+        // Cookies remain in the persistent partition for the next opening.
+        snapshot(id).then(value=>{if(!win.isDestroyed()&&!win.isVisible()&&value?.track?.playing===false)win.destroy();}).catch(()=>{});
+      }});
     }
     win.show();onActive(id);onChange();
     if(url||!win.webContents.getURL()||login)await win.loadURL(target).catch(()=>{});
