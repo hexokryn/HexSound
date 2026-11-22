@@ -13,7 +13,7 @@ const {createLyricsService}=require('./lyrics.cjs');
 const {createSessionLibrary}=require('./session-library.cjs');
 const {createUpdates}=require('./updates.cjs');
 const {spawn}=require('node:child_process');
-let sessionLibrary,updates,loginReturn=false;const syncingSources=new Map();
+let sessionLibrary,updates,webDiscovery,loginReturn=false,sourcePlayRevision=0;const remoteEnds=new Map();const syncingSources=new Map();
 const {createServiceHub}=require('./services/index.cjs');
 const {createLibrary}=require('./library/index.cjs');
 const {createServiceWindows,allowed:providerURL,providers}=require('./service-windows.cjs');
@@ -63,7 +63,7 @@ function layout() {
   const [w, h] = win.getContentSize();
   if(w>=640&&sidebarOpen){sidebarOpen=false;send('sidebar',false);}
   const left = w<640||settings.sidebarCollapsed?0:w < 1050 ? 76 : 236;
-  view.setBounds({ x:left,y:100,width:Math.max(1,w-left),height:Math.max(1,h-100) });
+  view.setBounds({ x:left,y:100,width:Math.max(1,w-left),height:Math.max(1,h-100-(w<640?112:96)) });
   view.setVisible(!settingsOpen&&!sidebarOpen&&!introOpen);
   if(isSoundCloud(view.webContents.getURL()))view.webContents.executeJavaScript(`window.HexAtmosphere?.setActive(${!settingsOpen && !sidebarOpen && win.isVisible() && !win.isMinimized()})`).catch(()=>{});
 }
@@ -88,7 +88,7 @@ async function applyTheme() {
 function status(value) { send('status', value); }
 async function navigate(route,{background=false}={}) {
   await experience?.stopNative();
-  nativePage=background?'player':'music';playbackProvider='soundcloud';nextPoll=0;
+  if(!background)nativePage='music';playbackProvider='soundcloud';nextPoll=0;
   sidebarOpen=false;send('sidebar',false);
   const routes = { discover: '/discover', feed: '/feed', library: '/you/library', likes: '/you/likes', playlists: '/you/sets', history: '/you/history', upload: '/upload', account: '/you' };
   if(route==='account'&&!playback.profile.url&&isSoundCloud(view.webContents.getURL())){const found=await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.profileURL()',true).catch(()=>'');if(isSoundCloud(found))playback.profile.url=found;}
@@ -96,7 +96,7 @@ async function navigate(route,{background=false}={}) {
   if (!isSoundCloud(url)) return;
   settingsOpen = background;
   layout();
-  send('page', background?'player':'music');
+  if(!background)send('page','music');
   // SoundCloud's link router keeps its player alive across internal navigation.
   if (isSoundCloud(view.webContents.getURL()) && new URL(view.webContents.getURL()).origin === new URL(url).origin && !view.webContents.isLoadingMainFrame()) {
     const target = new URL(url);
@@ -150,7 +150,7 @@ async function pollPlayback(){
   if(polling||!view||view.webContents.isDestroyed()||Date.now()<nextPoll)return;
   nextPoll=Date.now()+(nativePage==='player'?200:650);
   polling=true;
-  try{const raw=playbackProvider==='native'?await experience.snapshot():playbackProvider==='soundcloud'?(isSoundCloud(view.webContents.getURL())?await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.snapshot()'):null):await serviceWindows.snapshot(playbackProvider);if(!raw)return;const next=playerSnapshot(raw,{trustedMedia:playbackProvider==='native'});if(next.profile.loggedIn&&!playback.profile.loggedIn)syncSource('soundcloud').catch(()=>{});if(next.profile.loggedIn&&loginReturn){loginReturn=false;nativePage='library';settingsOpen=true;layout();send('page','library');}if(JSON.stringify(next)!==JSON.stringify(playback)){playback=next;send('playback',playback);}await experience?.tick(playback,lyricsService);}catch{}finally{polling=false;}
+  try{const raw=playbackProvider==='native'?await experience.snapshot():playbackProvider==='soundcloud'?(isSoundCloud(view.webContents.getURL())?await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.snapshot()'):null):await serviceWindows.snapshot(playbackProvider);if(!raw)return;const next=playerSnapshot(raw,{trustedMedia:playbackProvider==='native'});if(experience.queuedControls()&&next.track.controls)next.track.controls={...next.track.controls,next:true,previous:true,shuffle:true,repeat:true,like:true};if(next.profile.loggedIn&&!playback.profile.loggedIn)syncSource('soundcloud').catch(()=>{});if(next.profile.loggedIn&&loginReturn){loginReturn=false;nativePage='library';settingsOpen=true;layout();send('page','library');}if(playbackProvider==='soundcloud'&&Number.isFinite(raw.endedAt)&&raw.endedAt>(remoteEnds.get(playbackProvider)||0)){remoteEnds.set(playbackProvider,raw.endedAt);experience.remoteEnded().catch(e=>send('feature-notice',e.message));}if(JSON.stringify(next)!==JSON.stringify(playback)){playback=next;send('playback',playback);}await experience?.tick(playback,lyricsService);}catch{}finally{polling=false;}
 }
 async function createWindow() {
   win = new BrowserWindow({ width: 1440, height: 960, minWidth: 360, minHeight: 480,
@@ -161,7 +161,8 @@ async function createWindow() {
   services=createServiceHub({directory:path.join(app.getPath('userData'),'services'),safeStorage,fetcher:(url,init)=>net.fetch(url,init),openExternal:url=>shell.openExternal(url),onChange:value=>send('services',value)});
   library=createLibrary(path.join(app.getPath('userData'),'library.json'),{getAdapter:id=>services.getAdapter(id)});
   serviceWindows=createServiceWindows({BrowserWindow,parent:win,onActive:id=>{experience?.stopNative();playbackProvider=id;nextPoll=0;pollPlayback();},onChange:()=>send('service-windows',serviceWindows.status()),onExternal:confirmExternal,isQuitting:()=>quitting});
-  experience=createExperience({directory:app.getPath('userData'),services:new Proxy({},{get:(_,key)=>services[key]}),library:new Proxy({},{get:(_,key)=>library[key]}),send,handle,win,BrowserWindow,protocol,dialog,Visual,getSettings:()=>({...settings,resolvedDark:dark()}),getPlayback:()=>playback,openSource,activateNative:async()=>{if(playbackProvider!=='native'&&playbackProvider!=='soundcloud'&&playback.track.playing)await serviceWindows.control(playbackProvider,'toggle');playbackProvider='native';nextPoll=0;view.webContents.executeJavaScript("document.querySelectorAll('audio,video').forEach(el=>el.pause())").catch(()=>{});},openPlayer:()=>{nativePage='player';settingsOpen=true;layout();send('page','player');},control:playerControl});
+  webDiscovery=require('./web-discovery.cjs').createWebDiscovery({BrowserWindow,parent:win});
+  experience=createExperience({ensureLibrary:()=>syncSource('soundcloud'),webDiscovery,directory:app.getPath('userData'),services:new Proxy({},{get:(_,key)=>services[key]}),library:new Proxy({},{get:(_,key)=>library[key]}),send,handle,win,BrowserWindow,protocol,dialog,Visual,getSettings:()=>({...settings,resolvedDark:dark()}),getPlayback:()=>playback,openSource,activateNative:async()=>{if(playbackProvider!=='native'&&playbackProvider!=='soundcloud'&&playback.track.playing)await serviceWindows.control(playbackProvider,'toggle');playbackProvider='native';nextPoll=0;view.webContents.executeJavaScript("document.querySelectorAll('audio,video').forEach(el=>el.pause())").catch(()=>{});},openPlayer:()=>{nativePage='player';settingsOpen=true;layout();send('page','player');},control:playerControl});
   sessionLibrary=createSessionLibrary({BrowserWindow,parent:win,directory:app.getPath('userData'),onImport:document=>{library.importData(document);send('library-updated');},onChange:()=>send('services',publicServices())});
   updates=createUpdates({version:app.getVersion(),directory:path.join(app.getPath('userData'),'updates'),packaged:app.isPackaged&&!smoke,fetcher:(url,init)=>net.fetch(url,init),onChange:value=>send('updates',value),install:installUpdate});
   Menu.setApplicationMenu(null);
@@ -205,7 +206,7 @@ async function createWindow() {
   win.on('maximize', () => send('maximized', true));
   win.on('unmaximize', () => send('maximized', false));
   win.on('close', e => { if (!quitting && settings.closeToTray && tray && !smoke) { e.preventDefault(); win.hide(); } });
-  win.on('closed', () => {sessionLibrary?.dispose();experience?.dispose();services.dispose();libraryOperation?.abort();serviceWindows.close();if (!view.webContents.isDestroyed()) view.webContents.close(); for (const child of authWindows) child.destroy(); });
+  win.on('closed', () => {webDiscovery?.dispose();sessionLibrary?.dispose();experience?.dispose();services.dispose();libraryOperation?.abort();serviceWindows.close();if (!view.webContents.isDestroyed()) view.webContents.close(); for (const child of authWindows) child.destroy(); });
   await win.loadFile(path.join(__dirname, 'index.html'));
   await applyTheme();
   layout();
@@ -241,7 +242,7 @@ async function openSource(id,source={}){
   let url=typeof source.url==='string'?source.url:'';
   if(!url&&source.id)url=(await services.resolvePlayback(id,source.id)).url;
   if(url&&!providerURL(id,url))throw Error('Ссылка не принадлежит выбранному сервису.');
-  if(id==='soundcloud'){if(source.play){await navigate(url||'discover',{background:true});nativePage='player';settingsOpen=true;layout();send('page','player');const target=new URL(url||'https://soundcloud.com/discover').pathname;for(let i=0;i<18;i++){await new Promise(r=>setTimeout(r,500));if(!isSoundCloud(view.webContents.getURL())||new URL(view.webContents.getURL()).pathname!==target)continue;const clicked=await view.webContents.executeJavaScript("(()=>{const b=document.querySelector('.fullHero .playButton, .soundTitle__playButton .playButton, .fullHero .sc-button-play');if(!b)return false;if(!b.classList.contains('playing')&&!b.classList.contains('m-playing'))b.click();return true})()",true).catch(()=>false);if(clicked)break;}return true;}if(source.login){loginReturn=true;playbackProvider='soundcloud';return navigate('https://soundcloud.com/signin');}return navigate(url||'discover');}
+  if(id==='soundcloud'){if(source.play){const revision=++sourcePlayRevision;await navigate(url||'discover',{background:true});const target=new URL(url||'https://soundcloud.com/discover').pathname;let started=false;for(let i=0;i<18;i++){await new Promise(r=>setTimeout(r,500));if(revision!==sourcePlayRevision)return false;if(!isSoundCloud(view.webContents.getURL())||new URL(view.webContents.getURL()).pathname!==target)continue;const clicked=await view.webContents.executeJavaScript("(()=>{const b=document.querySelector('.fullHero .playButton, .soundTitle__playButton .playButton, .fullHero .sc-button-play');if(!b)return false;if(!b.classList.contains('playing')&&!b.classList.contains('m-playing'))b.click();return true})()",true).catch(()=>false);if(clicked){started=true;break;}}if(!started)throw Error('Не удалось запустить трек. Проверьте веб-вход в настройках подключений.');return true;}if(source.login){loginReturn=true;playbackProvider='soundcloud';return navigate('https://soundcloud.com/signin');}return navigate(url||'discover');}
   return serviceWindows.open(id,{url,login:source.login===true});
 }
 handle('services-web',(id,options)=>openSource(id,options&&typeof options==='object'?options:{}));
@@ -356,7 +357,7 @@ async function runExperienceAudit(){
     const savedStatuses=services.statuses,savedAdapter=services.getAdapter;services.statuses=()=>[{id:'soundcloud',name:'SoundCloud',connected:true,capabilities:{search:true}}];services.getAdapter=()=>({searchTracks:async()=>Array.from({length:9},(_,i)=>({id:'demo-'+i,title:['Glass horizon','After the rain','Soft focus','Blue hour','Second light','Still awake','Into the night','Quiet city','Morning glow'][i],artist:'Hex Sessions',duration:180+i*4,url:'https://soundcloud.com/demo/'+i}))});
     await run(`window.hex.openNative('wave')`);await run(`window.hex.experience('wave-generate')`);await delay(250);if(experience.wave.snapshot().items.length!==3)throw Error('Wave discovery or artist diversity failed');
     await run('window.HexExperienceUI.refresh()');win.setContentSize(1440,900);await delay(150);fs.writeFileSync(path.join(out,'wave.png'),(await win.capturePage()).toPNG());services.statuses=savedStatuses;services.getAdapter=savedAdapter;
-    const tracks=library.tracks();await run(`window.hex.experience('queue-add',{tracks:${JSON.stringify(tracks)}})`);const first=experience.queue.snapshot().entries[0];await run(`window.hex.experience('queue-play',{id:${JSON.stringify(first.id)}})`);await delay(700);const sample=await experience.snapshot();if(!sample?.track.playing||sample.track.position<.2)throw Error('Actual native WAV did not play: '+JSON.stringify(sample));
+    const tracks=library.tracks();await run(`window.hex.experience('queue-add',{tracks:${JSON.stringify(tracks)}})`);const first=experience.queue.snapshot().entries[0];await run(`window.hex.experience('queue-play',{id:${JSON.stringify(first.id)}})`);await delay(700);const sample=await experience.snapshot();send('playback',playerSnapshot(sample,{trustedMedia:true}));await delay(50);if(!(await run("document.querySelector('#playback-dock').getClientRects().length && document.querySelector('#dock-title').textContent!== 'Выберите музыку'")))throw Error('Bottom player did not show actual audio');if(!sample?.track.playing||sample.track.position<.2)throw Error('Actual native WAV did not play: '+JSON.stringify(sample));
     playback=playerSnapshot(sample,{trustedMedia:true});experience.collection.record(playback,tracks[0]);await delay(300);playback=playerSnapshot(await experience.snapshot(),{trustedMedia:true});experience.collection.record(playback,tracks[0]);if(!experience.collection.history().recent.length)throw Error('History failed');
     await run(`window.hex.playerControl('seek',7.9)`);await delay(500);if(experience.queue.snapshot().cursor!==1)throw Error('Native end did not advance queue');await run(`window.hex.playerControl('previous')`);await run(`window.hex.playerControl('seek',2)`);const sought=await experience.snapshot();if(Math.abs(sought.track.position-2)>.4)throw Error('Native seeking failed');await run(`window.hex.playerControl('toggle')`);if((await experience.snapshot()).track.playing)throw Error('Native pause failed');await run(`window.hex.playerControl('next')`);if(experience.queue.snapshot().cursor!==1)throw Error('Unified queue next failed');
     await run(`window.hex.experience('mini')`);await experience.tick(playback,lyricsService);const mini=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().endsWith('/mini.html'));if(!mini)throw Error('Mini-player did not load');if(!(await mini.webContents.executeJavaScript('typeof window.hex==="undefined" && !!window.mini')))throw Error('Mini-player received privileged API');

@@ -112,7 +112,7 @@ function remoteFixture({audio=null,filled=25.5,full=100,elapsed='0:10'}={}){
     ['.playControls__play',{classList:{contains:()=>state.playing}}],
     ['.playbackTimeline__progressWrapper',{dispatchEvent(){}}]
   ]);
-  const context={window:{},navigator:{mediaSession:{metadata:{title:'Track',artist:'Artist'},get playbackState(){return state.playing?'playing':'paused';}}},location:{href:'https://soundcloud.com/discover'},performance:{now:()=>time},Date:{now:()=>1700000000123+time},URL,MouseEvent:function(type,options){return {type,...options};},getComputedStyle:()=>({backgroundImage:'none'}),document:{querySelector:s=>nodes.get(s)||null,querySelectorAll:s=>s==='audio'&&audio?[audio]:[],dispatchEvent(){}}};
+  const context={window:{},navigator:{mediaSession:{metadata:{title:'Track',artist:'Artist'},get playbackState(){return state.playing?'playing':'paused';}}},location:{href:'https://soundcloud.com/discover'},performance:{now:()=>time},Date:{now:()=>1700000000123+time},URL,MouseEvent:function(type,options){return {type,...options};},getComputedStyle:()=>({backgroundImage:'none'}),document:{addEventListener(){},querySelector:s=>nodes.get(s)||null,querySelectorAll:s=>s==='audio'&&audio?[audio]:[],dispatchEvent(){}}};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/remote-player.js'),'utf8'),context);
   const player=context.window.HexRemotePlayer;player.advance=ms=>time+=ms;player.set=patch=>Object.assign(state,patch);player.hook=track=>context.window.HexWebPlayer={snapshot:()=>({track})};return player;
 }

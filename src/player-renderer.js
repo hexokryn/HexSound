@@ -28,6 +28,7 @@
   function lineAt(lines,at){let low=0,high=lines.length-1,index=-1;while(low<=high){const mid=(low+high)>>1;if(lines[mid].time<=at){index=mid;low=mid+1;}else high=mid-1;}return index;}
   function canControl(track,action){return !!track.available&&(!track.controls||track.controls[action]===true);}
   if(typeof module==='object'&&module.exports){module.exports={createPlaybackClock,lineAt,canControl};return;}
+  window.HexPlaybackClock=createPlaybackClock;
   const clock=createPlaybackClock();
   let live={profile:{loggedIn:false},track:{available:false}},lyrics={status:'idle',lines:[]},lyricsKey='',requestVersion=0,activeLine=-2,follow=true,frame=0,scrubbing=false,online;
   const trackKey=t=>[t.url,t.title,t.artist,Math.round(t.duration||0)].join('|');

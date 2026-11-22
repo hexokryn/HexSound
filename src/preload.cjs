@@ -48,7 +48,7 @@ contextBridge.exposeInMainWorld('hex', {
   clearCache: () => ipcRenderer.invoke('clear-cache'),
   logout: () => ipcRenderer.invoke('logout'),
   on: (channel, callback) => {
-    if (!['settings', 'status', 'location', 'page', 'maximized', 'focus-search','playback','sidebar','services','service-windows','library-updated','transfer-progress','queue','wave','local-progress','transfer-jobs','feature-notice','updates'].includes(channel)) return;
+    if (!['settings', 'status', 'location', 'page', 'maximized', 'focus-search','playback','sidebar','services','service-windows','library-updated','transfer-progress','queue','wave','local-progress','transfer-jobs','feature-notice','playback-pending','updates'].includes(channel)) return;
     const listener = (_, value) => callback(value);
     ipcRenderer.on(channel, listener);
     return () => ipcRenderer.removeListener(channel, listener);

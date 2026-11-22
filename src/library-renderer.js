@@ -31,10 +31,10 @@
     for(const track of rows){
       const row=node('div','library-track'),image=node('div','library-track-art');
       if(track.artwork){const img=node('img');img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.src=track.artwork;img.onerror=()=>img.remove();image.append(img);}else image.textContent='♪';
-      const meta=node('button','library-track-meta');meta.type='button';meta.append(node('strong','',track.title),node('span','',track.artist||'Неизвестный исполнитель'));meta.title='Открыть в сервисе';
+      const meta=node('button','library-track-meta');meta.type='button';meta.append(node('strong','',track.title),node('span','',track.artist||'Неизвестный исполнитель'));meta.title='Воспроизвести';
       const sources=track.sources||[{...track,service:track.service||searchProvider}];
       const source=sources.find(s=>s.service===service)||sources.find(s=>s.service!=='local')||sources[0];
-      meta.disabled=!source?.url&&!source?.id;meta.onclick=()=>action(meta,()=>window.hex.experience('play',{track:{...track,sources}}));
+      meta.disabled=!source?.url&&!source?.id;meta.onclick=()=>action(meta,()=>window.hex.experience('play',{track:{...track,sources}}));image.setAttribute('role','button');image.tabIndex=0;image.setAttribute('aria-label','Воспроизвести '+track.title);image.onclick=()=>meta.click();image.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();meta.click();}};
       if(!searchResults){const check=node('input');check.type='checkbox';check.checked=selected.has(track.id);check.setAttribute('aria-label','Выбрать '+track.title);check.onchange=()=>{check.checked?selected.add(track.id):selected.delete(track.id);selectionText();};row.append(check);}
       row.append(image,meta);
       const badges=node('div','library-track-sources');for(const source of sources){const badge=node('span','provider-badge',short[source.service]||'♪');badge.title=names[source.service]||source.service;badges.append(badge);}row.append(badges);
