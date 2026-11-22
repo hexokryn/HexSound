@@ -44,6 +44,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          node -e "require('electron')"
           $application = Start-Process -WindowStyle Hidden -FilePath 'node_modules/electron/dist/electron.exe' -ArgumentList 'scripts/check-update-transport.cjs' -Wait -PassThru -RedirectStandardOutput 'update-transport.log' -RedirectStandardError 'update-transport-error.log'
           Get-Content update-transport.log
           Get-Content update-transport-error.log
