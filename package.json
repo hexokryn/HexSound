@@ -1,6 +1,6 @@
 {
   "name": "hexsound",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Music library, personal radio and player for Windows and Linux",
   "main": "src/main.cjs",
   "author": "hexokryn",
@@ -19,7 +19,8 @@
     "check:library": "electron . --library-test",
     "postinstall": "node scripts/copy-vendor.cjs",
     "check:experience": "electron . --experience-test",
-    "check:memory": "electron . --memory-test"
+    "check:memory": "electron . --memory-test",
+    "check:unified": "electron . --unified-test"
   },
   "devDependencies": {
     "electron": "45.3.4",

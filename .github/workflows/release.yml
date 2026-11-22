@@ -46,6 +46,16 @@ jobs:
       - name: Verify lazy startup and record process memory
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --memory-test --memory-label=linux
+      - name: Verify unified interface and update prompt
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron . --unified-test
+      - name: Upload interface audit
+        if: runner.os == 'Linux' && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: interface-audit
+          if-no-files-found: ignore
+          path: artifacts/hexsound-unified/*.png
       - name: Build Windows
         if: runner.os == 'Windows'
         run: npm run dist -- --publish never

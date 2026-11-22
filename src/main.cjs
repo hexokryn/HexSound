@@ -10,6 +10,10 @@ const remotePlayerSource = fs.readFileSync(path.join(__dirname, 'remote-player.j
 const webPlayerSource=fs.readFileSync(path.join(__dirname,'web-player.js'),'utf8');
 const {sanitize:playerSnapshot}=require('./player-state.cjs');
 const {createLyricsService}=require('./lyrics.cjs');
+const {createSessionLibrary}=require('./session-library.cjs');
+const {createUpdates}=require('./updates.cjs');
+const {spawn}=require('node:child_process');
+let sessionLibrary,updates,loginReturn=false;const syncingSources=new Map();
 const {createServiceHub}=require('./services/index.cjs');
 const {createLibrary}=require('./library/index.cjs');
 const {createServiceWindows,allowed:providerURL,providers}=require('./service-windows.cjs');
@@ -20,10 +24,11 @@ const {createExperience}=require('./features/runtime.cjs');
 let experience;const nativePages=['library','services','transfer','wave','queue','smart','local','duplicates','listening','jobs'];
 const layoutTest=process.argv.includes('--layout-test');
 const visualTest=process.argv.includes('--effects-test');
+const unifiedTest=process.argv.includes('--unified-test');
 const memoryTest=process.argv.includes('--memory-test');
 const experienceTest=process.argv.includes('--experience-test');
 const libraryTest=process.argv.includes('--library-test');
-const smoke = process.argv.includes('--smoke-test')||layoutTest||visualTest||libraryTest||experienceTest||memoryTest;
+const smoke = process.argv.includes('--smoke-test')||layoutTest||visualTest||libraryTest||experienceTest||memoryTest||unifiedTest;
 if (smoke) app.setPath('userData', path.join(app.getPath('temp'), 'hexsound-smoke-' + process.pid));
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 const lyricsService=createLyricsService(path.join(app.getPath('userData'),'lyrics'),{fetcher:(url,init)=>net.fetch(url,init)});
@@ -81,17 +86,17 @@ async function applyTheme() {
   send('settings', { ...settings, resolvedDark: dark() });
 }
 function status(value) { send('status', value); }
-async function navigate(route) {
+async function navigate(route,{background=false}={}) {
   await experience?.stopNative();
-  nativePage='music';playbackProvider='soundcloud';nextPoll=0;
+  nativePage=background?'player':'music';playbackProvider='soundcloud';nextPoll=0;
   sidebarOpen=false;send('sidebar',false);
   const routes = { discover: '/discover', feed: '/feed', library: '/you/library', likes: '/you/likes', playlists: '/you/sets', history: '/you/history', upload: '/upload', account: '/you' };
   if(route==='account'&&!playback.profile.url&&isSoundCloud(view.webContents.getURL())){const found=await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.profileURL()',true).catch(()=>'');if(isSoundCloud(found))playback.profile.url=found;}
   const url = route==='account'&&playback.profile.url?playback.profile.url:routes[route] ? 'https://soundcloud.com' + routes[route] : route;
   if (!isSoundCloud(url)) return;
-  settingsOpen = false;
+  settingsOpen = background;
   layout();
-  send('page', 'music');
+  send('page', background?'player':'music');
   // SoundCloud's link router keeps its player alive across internal navigation.
   if (isSoundCloud(view.webContents.getURL()) && new URL(view.webContents.getURL()).origin === new URL(url).origin && !view.webContents.isLoadingMainFrame()) {
     const target = new URL(url);
@@ -145,7 +150,7 @@ async function pollPlayback(){
   if(polling||!view||view.webContents.isDestroyed()||Date.now()<nextPoll)return;
   nextPoll=Date.now()+(nativePage==='player'?200:650);
   polling=true;
-  try{const raw=playbackProvider==='native'?await experience.snapshot():playbackProvider==='soundcloud'?(isSoundCloud(view.webContents.getURL())?await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.snapshot()'):null):await serviceWindows.snapshot(playbackProvider);if(!raw)return;const next=playerSnapshot(raw,{trustedMedia:playbackProvider==='native'});if(JSON.stringify(next)!==JSON.stringify(playback)){playback=next;send('playback',playback);}await experience?.tick(playback,lyricsService);}catch{}finally{polling=false;}
+  try{const raw=playbackProvider==='native'?await experience.snapshot():playbackProvider==='soundcloud'?(isSoundCloud(view.webContents.getURL())?await view.webContents.executeJavaScript(remotePlayerSource+';window.HexRemotePlayer.snapshot()'):null):await serviceWindows.snapshot(playbackProvider);if(!raw)return;const next=playerSnapshot(raw,{trustedMedia:playbackProvider==='native'});if(next.profile.loggedIn&&!playback.profile.loggedIn)syncSource('soundcloud').catch(()=>{});if(next.profile.loggedIn&&loginReturn){loginReturn=false;nativePage='library';settingsOpen=true;layout();send('page','library');}if(JSON.stringify(next)!==JSON.stringify(playback)){playback=next;send('playback',playback);}await experience?.tick(playback,lyricsService);}catch{}finally{polling=false;}
 }
 async function createWindow() {
   win = new BrowserWindow({ width: 1440, height: 960, minWidth: 360, minHeight: 480,
@@ -157,6 +162,8 @@ async function createWindow() {
   library=createLibrary(path.join(app.getPath('userData'),'library.json'),{getAdapter:id=>services.getAdapter(id)});
   serviceWindows=createServiceWindows({BrowserWindow,parent:win,onActive:id=>{experience?.stopNative();playbackProvider=id;nextPoll=0;pollPlayback();},onChange:()=>send('service-windows',serviceWindows.status()),onExternal:confirmExternal,isQuitting:()=>quitting});
   experience=createExperience({directory:app.getPath('userData'),services:new Proxy({},{get:(_,key)=>services[key]}),library:new Proxy({},{get:(_,key)=>library[key]}),send,handle,win,BrowserWindow,protocol,dialog,Visual,getSettings:()=>({...settings,resolvedDark:dark()}),getPlayback:()=>playback,openSource,activateNative:async()=>{if(playbackProvider!=='native'&&playbackProvider!=='soundcloud'&&playback.track.playing)await serviceWindows.control(playbackProvider,'toggle');playbackProvider='native';nextPoll=0;view.webContents.executeJavaScript("document.querySelectorAll('audio,video').forEach(el=>el.pause())").catch(()=>{});},openPlayer:()=>{nativePage='player';settingsOpen=true;layout();send('page','player');},control:playerControl});
+  sessionLibrary=createSessionLibrary({BrowserWindow,parent:win,directory:app.getPath('userData'),onImport:document=>{library.importData(document);send('library-updated');},onChange:()=>send('services',publicServices())});
+  updates=createUpdates({version:app.getVersion(),directory:path.join(app.getPath('userData'),'updates'),packaged:app.isPackaged&&!smoke,fetcher:(url,init)=>net.fetch(url,init),onChange:value=>send('updates',value),install:installUpdate});
   Menu.setApplicationMenu(null);
   win.webContents.on('will-navigate', e => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -198,12 +205,13 @@ async function createWindow() {
   win.on('maximize', () => send('maximized', true));
   win.on('unmaximize', () => send('maximized', false));
   win.on('close', e => { if (!quitting && settings.closeToTray && tray && !smoke) { e.preventDefault(); win.hide(); } });
-  win.on('closed', () => {experience?.dispose();services.dispose();libraryOperation?.abort();serviceWindows.close();if (!view.webContents.isDestroyed()) view.webContents.close(); for (const child of authWindows) child.destroy(); });
+  win.on('closed', () => {sessionLibrary?.dispose();experience?.dispose();services.dispose();libraryOperation?.abort();serviceWindows.close();if (!view.webContents.isDestroyed()) view.webContents.close(); for (const child of authWindows) child.destroy(); });
   await win.loadFile(path.join(__dirname, 'index.html'));
   await applyTheme();
   layout();
   win.show();
   try{createTray();}catch{tray=undefined;}
+  if(unifiedTest){require('./unified-audit.cjs')({win,app,Visual,base:__dirname,prepare:()=>{settingsOpen=true;introOpen=false;layout();},mockSession:()=>{sessionLibrary.dispose();sessionLibrary={status:()=>({connected:true,attemptedAt:Date.now()}),dispose(){},sync:async()=>({service:'soundcloud',tracks:[{id:'web-/demo/song',title:'Session music',artist:'Demo',url:'https://soundcloud.com/demo/song'}],playlists:[],complete:false})};}});return;}
   if(memoryTest){runMemoryAudit();return;}
   if(experienceTest){runExperienceAudit();return;}
   if(libraryTest){runLibraryAudit();return;}
@@ -218,29 +226,32 @@ async function createWindow() {
 function trusted(event) { return event.sender === win?.webContents && event.senderFrame?.url === shellURL; }
 function handle(name, fn) { ipcMain.handle(name, async (event, ...args) => { if (!trusted(event)) throw new Error('Untrusted sender'); return fn(...args); }); }
 handle('get-settings', () => ({ ...settings, resolvedDark: dark(), version: app.getVersion(), skipIntro:smoke,nativeHome:!smoke }));
-handle('intro-complete',animate=>{const first=introOpen;introOpen=false;layout();if(first&&animate&&settings.motion&&isSoundCloud(view.webContents.getURL()))view.webContents.executeJavaScript(`document.documentElement.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],{duration:650,easing:'cubic-bezier(.22,1,.36,1)'})`).catch(()=>{});return true;});
+handle('intro-complete',animate=>{const first=introOpen;introOpen=false;layout();if(first&&!smoke)setTimeout(()=>syncStartup(),800);if(first&&animate&&settings.motion&&isSoundCloud(view.webContents.getURL()))view.webContents.executeJavaScript(`document.documentElement.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],{duration:650,easing:'cubic-bezier(.22,1,.36,1)'})`).catch(()=>{});return true;});
 handle('get-playback',()=>playback);
 handle('native-page',name=>{if(!nativePages.includes(name))throw Error('Неизвестный экран.');nativePage=name;settingsOpen=true;sidebarOpen=false;send('sidebar',false);layout();send('page',name);return true;});
-handle('services-status',()=>services.statuses());
+function publicServices(){return services.statuses().map(s=>s.id==='soundcloud'?{...s,webSession:!!sessionLibrary?.status().connected||playback.profile.loggedIn,webLibrary:sessionLibrary?.status(),capabilities:{...s.capabilities,libraryRead:s.capabilities.libraryRead||!!sessionLibrary?.status().connected||playback.profile.loggedIn}}:s);}
+handle('services-status',publicServices);
 handle('services-configure',(id,patch)=>services.configure(id,patch));
-handle('services-connect',id=>services.connect(id));
+handle('services-connect',async id=>{const result=await services.connect(id);syncSource(id).catch(()=>{});return result;});
 handle('services-cancel',id=>{services.cancelConnect(id);return services.status(id);});
-handle('services-token',(id,input)=>services.importToken(id,input));
+handle('services-token',async(id,input)=>{const result=await services.importToken(id,input);syncSource(id).catch(()=>{});return result;});
 handle('services-disconnect',id=>services.disconnect(id));
 async function openSource(id,source={}){
   if(!Object.hasOwn(providers,id))throw Error('Неизвестный сервис.');
   let url=typeof source.url==='string'?source.url:'';
   if(!url&&source.id)url=(await services.resolvePlayback(id,source.id)).url;
   if(url&&!providerURL(id,url))throw Error('Ссылка не принадлежит выбранному сервису.');
-  if(id==='soundcloud'){if(source.login){playbackProvider='soundcloud';return navigate('https://soundcloud.com/signin');}return navigate(url||'discover');}
+  if(id==='soundcloud'){if(source.play){await navigate(url||'discover',{background:true});nativePage='player';settingsOpen=true;layout();send('page','player');const target=new URL(url||'https://soundcloud.com/discover').pathname;for(let i=0;i<18;i++){await new Promise(r=>setTimeout(r,500));if(!isSoundCloud(view.webContents.getURL())||new URL(view.webContents.getURL()).pathname!==target)continue;const clicked=await view.webContents.executeJavaScript("(()=>{const b=document.querySelector('.fullHero .playButton, .soundTitle__playButton .playButton, .fullHero .sc-button-play');if(!b)return false;if(!b.classList.contains('playing')&&!b.classList.contains('m-playing'))b.click();return true})()",true).catch(()=>false);if(clicked)break;}return true;}if(source.login){loginReturn=true;playbackProvider='soundcloud';return navigate('https://soundcloud.com/signin');}return navigate(url||'discover');}
   return serviceWindows.open(id,{url,login:source.login===true});
 }
 handle('services-web',(id,options)=>openSource(id,options&&typeof options==='object'?options:{}));
 handle('services-browser',id=>{if(!Object.hasOwn(providers,id))throw Error('Неизвестный сервис.');return shell.openExternal(providers[id].home);});
 handle('services-help',()=>shell.openExternal('https://github.com/hexokryn/HexSound/blob/main/docs/services.md'));
-handle('services-search',(id,query)=>{if(typeof query!=='string'||!query.trim()||query.length>300)throw Error('Введите запрос до 300 символов.');return services.search(id,query.trim());});
+handle('services-search',(id,query)=>{if(typeof query!=='string'||!query.trim()||query.length>300)throw Error('Введите запрос до 300 символов.');if(id==='all')return Promise.all(services.statuses().filter(s=>s.capabilities.search).map(async s=>{try{const rows=await services.search(s.id,query.trim());return {tracks:(Array.isArray(rows)?rows:rows.tracks||[]).map(t=>({...t,service:s.id,sources:[{service:s.id,id:t.id,url:t.url}]}))};}catch{return {error:s.id,tracks:[]};}})).then(rows=>({tracks:rows.flatMap(r=>r.tracks),errors:rows.filter(r=>r.error).map(r=>r.error)}));return services.search(id,query.trim());});
 handle('library-list',options=>{const value=library.snapshot(options&&typeof options==='object'?options:{});value.tracks=value.tracks.map(experience.decorate);return value;});
-handle('library-sync',async id=>{try{const value=await library.sync(id);send('library-updated');return value;}finally{send('library-updated');}});
+async function syncSource(id){if(syncingSources.has(id))return syncingSources.get(id);const pending=(async()=>{try{if(id==='soundcloud'&&!services.status(id).connected){const data=await sessionLibrary.sync();const value=library.importData(data);send('library-updated');return value;}return await library.sync(id);}finally{send('library-updated');send('services',publicServices());syncingSources.delete(id);}})();syncingSources.set(id,pending);return pending;}
+async function syncStartup(){for(const s of services.statuses())if(s.capabilities.libraryRead)syncSource(s.id).catch(()=>{});if(!services.status('soundcloud').connected&&Date.now()-sessionLibrary.status().attemptedAt>86400000)syncSource('soundcloud').catch(()=>{});}
+handle('library-sync',syncSource);
 handle('library-plan',async options=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{const plan=await library.planTransfer(options,{signal:controller.signal});experience.plans.set(plan.id,plan);return plan;}finally{if(libraryOperation===controller)libraryOperation=null;}});
 handle('library-transfer',async options=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{const plan=experience.plans.get(options?.planId);if(!plan)throw Error('Найдите совпадения снова.');const result=await experience.journal.start(plan,options.choices,opts=>library.executeTransfer(options,opts),{signal:controller.signal,onProgress:value=>send('transfer-progress',value)});experience.plans.delete(plan.id);return result;}finally{if(libraryOperation===controller)libraryOperation=null;}});
 handle('transfer-resume',async id=>{if(libraryOperation)throw Error('Дождитесь завершения текущей операции.');const controller=new AbortController();libraryOperation=controller;try{return await experience.journal.resume(id,{signal:controller.signal,onProgress:value=>send('transfer-progress',value)});}finally{libraryOperation=null;}});
@@ -324,9 +335,9 @@ handle('logout', async () => {
   await view.webContents.loadURL('about:blank');
   await view.webContents.session.clearStorageData();
   await view.webContents.session.clearCache();
-  navigate('discover'); return true;
+  sessionLibrary.reset();playback={...playback,profile:{loggedIn:false,name:'',url:'',avatar:''}};send('playback',playback);currentURL='https://soundcloud.com/discover';nativePage='services';settingsOpen=true;layout();send('page','services');return true;
 });
-app.on('before-quit', () => { quitting = true;clearInterval(pollTimer);experience?.dispose(); });
+app.on('before-quit', () => { quitting = true;clearInterval(pollTimer);updates?.cancel();sessionLibrary?.dispose();experience?.dispose(); });
 app.on('window-all-closed', () => app.quit());
 nativeTheme.on('updated', () => { if (win) applyTheme(); });
 if (!smoke && !app.requestSingleInstanceLock()) app.quit();
@@ -667,4 +678,13 @@ async function runMemoryAudit(){
     const out=path.join(app.isPackaged?app.getPath('temp'):path.join(__dirname,'..','artifacts'),'memory-'+label.replace(/[^a-z0-9-]/gi,'')+'.json');
     fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify({platform:process.platform,note:'Working sets include shared pages; this sum is not private RAM.',snapshots},null,2));console.log('MEMORY_AUDIT_OK '+out);app.exit(0);
   }catch(error){console.error(error);app.exit(1);}
+}
+
+handle('updates-check',force=>updates.check(force===true));handle('updates-download',()=>updates.download());handle('updates-apply',()=>updates.apply());handle('updates-cancel',()=>{updates.cancel();return true;});
+async function installUpdate({file,portable,platform,sha256}){
+ if(platform==='win32'&&portable){const target=process.env.PORTABLE_EXECUTABLE_FILE;if(!target||!path.isAbsolute(target))throw Error('Не найден исходный Portable-файл.');const quote=value=>"'"+value.replace(/'/g,"''")+"'";const script=`$ErrorActionPreference='Stop'; $target=${quote(target)}; $source=${quote(file)}; $old=Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue; if($old -and -not $old.WaitForExit(60000)){throw 'Application did not exit'}; if((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant() -ne '${sha256}'){throw 'Hash mismatch'}; Copy-Item -LiteralPath $source -Destination ($target+'.new') -Force; Move-Item -LiteralPath $target -Destination ($target+'.bak') -Force; Move-Item -LiteralPath ($target+'.new') -Destination $target; Start-Process -FilePath $target`;await new Promise((resolve,reject)=>{const helper=spawn('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{detached:true,stdio:'ignore',windowsHide:true});helper.once('error',reject);helper.once('spawn',()=>{helper.unref();resolve();});});quitting=true;app.quit();return;
+ }
+ if(platform==='win32'){await new Promise((resolve,reject)=>{const helper=spawn(file,[],{detached:true,stdio:'ignore'});helper.once('error',reject);helper.once('spawn',()=>{helper.unref();resolve();});});quitting=true;app.quit();return;}
+ if(platform==='linux'&&process.env.APPIMAGE){const target=process.env.APPIMAGE;await fs.promises.copyFile(file,target+'.new');await fs.promises.chmod(target+'.new',0o755);await fs.promises.rename(target+'.new',target);const env={...process.env};delete env.APPIMAGE;delete env.APPDIR;const child=spawn(target,[],{detached:true,stdio:'ignore',env});child.unref();quitting=true;app.quit();return;}
+ const error=await shell.openPath(file);if(error)throw Error(error);
 }

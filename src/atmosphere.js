@@ -27,7 +27,17 @@
     const t=clock, [c1,c2,c3]=config.colors;
     const strength=config.intensity*(config.dark?1:.72);
     ctx.save();
-    if(['aurora','orbs','bokeh'].includes(config.effect)) {
+    if(config.effect==='nebula'){
+      for(let i=0;i<5;i++)glow(width*(.2+.6*seeded(i+3))+Math.sin(t*.06+i)*width*.12,height*(.2+.6*seeded(i+80))+Math.cos(t*.08+i)*height*.12,Math.max(width,height)*(.25+i*.025),[c1,c2,c3][i%3],strength*.38);
+    }else if(config.effect==='prism'){
+      for(let i=0;i<9;i++){const x=width*seeded(i+20)+Math.sin(t*.05+i)*60,y=height*seeded(i+55)+Math.cos(t*.05+i)*50,r=Math.min(width,height)*(.13+seeded(i)*.14);ctx.globalAlpha=strength*.07;ctx.fillStyle=[c1,c2,c3][i%3];ctx.beginPath();for(let j=0;j<3;j++){const a=t*.018+i+j*Math.PI*2/3;const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;j?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();ctx.fill();}
+    }else if(config.effect==='fireflies'||config.effect==='snow'||config.effect==='comets'){
+      for(let i=0;i<55;i++){const p=particles[i],x=(p.x*width+Math.sin(t*.1+i)*30+width)%width,y=(p.y*height+t*(config.effect==='snow'?7+p.v*9:config.effect==='comets'?24:2))%(height+40)-20;ctx.globalAlpha=strength*(.15+(.5+.5*Math.sin(t*.6+i))*.5);ctx.fillStyle=[c1,c2,c3][i%3];if(config.effect==='comets'){ctx.strokeStyle=c1;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-16-p.r*8,y-22-p.r*8);ctx.stroke();}ctx.beginPath();ctx.arc(x,y,config.effect==='snow'?p.r*.7:p.r,0,Math.PI*2);ctx.fill();}
+    }else if(config.effect==='ribbons'){
+      for(let i=0;i<10;i++){ctx.globalAlpha=strength*.17;ctx.strokeStyle=[c1,c2,c3][i%3];ctx.lineWidth=1+i*.15;ctx.beginPath();for(let x=-10;x<width+10;x+=12){const y=height*.5+Math.sin(x/width*6+t*.16+i*.32)*height*.25+Math.cos(x/width*3-t*.1+i)*35;x===-10?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();}
+    }else if(config.effect==='ripples'||config.effect==='pulse'){
+      const max=Math.hypot(width,height)*.6;for(let i=0;i<14;i++){const phase=(i/14+t*.015)%1;ctx.globalAlpha=strength*(1-phase)*.3;ctx.strokeStyle=[c1,c2,c3][i%3];ctx.lineWidth=.8;ctx.beginPath();const radius=Math.max(1,phase*max);if(config.effect==='pulse')ctx.rect(width*.5-radius,height*.5-radius*.6,radius*2,radius*1.2);else ctx.ellipse(width*.5+Math.sin(t*.05)*width*.12,height*.5,radius,radius*.65,0,0,Math.PI*2);ctx.stroke();}
+    }else if(['aurora','orbs','bokeh'].includes(config.effect)) {
       const count=config.effect==='bokeh'?13:config.effect==='orbs'?5:4;
       for(let i=0;i<count;i++) {
         const x=width*(.1+seeded(i+6)*.8)+Math.sin(t*.12+i*1.8)*width*.2;

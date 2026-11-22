@@ -7,7 +7,7 @@ HexSound — единая музыкальная библиотека для Win
 
 ![Единая библиотека HexSound](docs/screenshots/library.png)
 
-В 0.8.1 уменьшен расход памяти: сервисы открываются по запросу, скрытые фоны освобождают canvas-буферы, HLS и медиапрокси ограничены по памяти. Прежний интерфейс сохранён.
+В 0.9.0 навигация объединена вокруг музыки: подключения, перенос и обслуживание находятся в настройках. Добавлены синхронизация SoundCloud из веб-входа, восемь фонов и проверяемые обновления на экране интро. Оптимизации памяти 0.8.1 сохранены.
 
 ## Моя волна и новая медиатека
 
@@ -23,22 +23,22 @@ HexSound — единая музыкальная библиотека для Win
 
 | Платформа | Вариант | Загрузка |
 | :--- | :--- | :--- |
-| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.8.1-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-setup.exe) |
-| Windows x64 | Portable без установки | [HexSound-0.8.1-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-portable.exe) |
-| Linux x64 | AppImage | [HexSound-0.8.1-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-linux-x86_64.AppImage) |
-| Linux x64 | Пакет DEB | [HexSound-0.8.1-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-linux-amd64.deb) |
-| Linux x64 | Архив tar.gz | [HexSound-0.8.1-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.8.1/HexSound-0.8.1-linux-x64.tar.gz) |
+| Windows x64 | Setup с выбором папки и ярлыками | [HexSound-0.9.0-setup.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-setup.exe) |
+| Windows x64 | Portable без установки | [HexSound-0.9.0-portable.exe](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-portable.exe) |
+| Linux x64 | AppImage | [HexSound-0.9.0-linux-x86_64.AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-linux-x86_64.AppImage) |
+| Linux x64 | Пакет DEB | [HexSound-0.9.0-linux-amd64.deb](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-linux-amd64.deb) |
+| Linux x64 | Архив tar.gz | [HexSound-0.9.0-linux-x64.tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.9.0/HexSound-0.9.0-linux-x64.tar.gz) |
 
 Для AppImage разрешите запуск файла:
 
 ```sh
-chmod +x HexSound-0.8.1-linux-x86_64.AppImage
-./HexSound-0.8.1-linux-x86_64.AppImage
+chmod +x HexSound-0.9.0-linux-x86_64.AppImage
+./HexSound-0.9.0-linux-x86_64.AppImage
 ```
 
 Если FUSE недоступен, в [инструкции для Linux](docs/linux.md) описан запуск через извлечение AppImage. Там же указаны зависимости и настройка системного хранилища секретов.
 
-Перед обновлением завершите предыдущую версию через **трей → Выйти**. В Windows профиль хранится в `%APPDATA%/HexSound`, в том числе у Portable. Автоматического обновления пока нет; Windows EXE не подписаны цифровой подписью.
+Перед обновлением завершите предыдущую версию через **трей → Выйти**. В Windows профиль хранится в `%APPDATA%/HexSound`, в том числе у Portable. Начиная с 0.9.0 приложение проверяет обновления на старте: можно обновиться, пропустить или прочитать изменения. Windows EXE не подписаны цифровой подписью.
 
 ## Своя медиатека
 
@@ -83,7 +83,7 @@ Access Token и Client Secret вводятся в защищённые поля 
 
 Текст из [LRCLIB](https://lrclib.net) или собственного LRC-файла следует таймкодам строк. Активная строка читается сразу: анимация слов не скрывает её после начала. Часы учитывают время получения снимка плеера и перемотку; при недоступных точных часах используется оценка по наблюдаемому таймлайну сервиса. Ручная прокрутка останавливает слежение за строкой.
 
-В оформлении доступны 32 темы, светлый и тёмный режим, девять анимированных фонов и свои изображения. Можно настроить движение обложки, скрыть боковую панель и отключить анимации.
+В оформлении доступны 32 темы, светлый и тёмный режим, 17 анимированных фонов и свои изображения. Можно настроить движение обложки, скрыть боковую панель и отключить анимации.
 
 Медиатека, поиск, волна и перенос работают в интерфейсе HexSound. Локальные файлы и доступные потоки SoundCloud API воспроизводятся собственным аудиодвижком с автоматическим переходом в очереди. SoundCloud может ограничить доступ или предоставить только превью. Для остальных сервисов используются официальные веб-плееры, включая обработку DRM. Автоматический запуск и команды в них зависят от сайта. Полная замена всех экранов сервисов не реализована.
 

@@ -12,12 +12,12 @@
   async function start(preview=false){
     const version=++previewVersion;
     const s=await window.hex.getSettings();const animate=s.motion&&!(s.respectReducedMotion&&matchMedia('(prefers-reduced-motion: reduce)').matches);
-    if((s.skipIntro&&!preview)||!animate){await finish(false);return;}
+    if(s.skipIntro&&!preview){await finish(false);return;}
+    const check=!preview?window.HexUpdateUI.check().catch(()=>null):Promise.resolve(null);
     const screen=document.querySelector('#launch-screen');screen.hidden=false;screen.classList.remove('is-leaving');document.body.classList.add('is-launching');
     screen.classList.add('is-running');
-    await sleep(1240);if(version===previewVersion)await finish(true);
+    await sleep(animate?1240:0);const update=await check;if(version!==previewVersion)return;await window.HexUpdateUI.offer(update);if(version===previewVersion)await finish(animate);
   }
-  const watchdog=setTimeout(()=>finish(false),3000);
-  start().catch(()=>finish(false)).finally(()=>clearTimeout(watchdog));
+  start().catch(()=>finish(false));
   window.HexLaunch={replay:async()=>{finished=false;const screen=document.querySelector('#launch-screen');screen.classList.remove('is-running');void screen.offsetWidth;await start(true);},inspect:()=>({finished,hidden:document.querySelector('#launch-screen').hidden})};
 })();

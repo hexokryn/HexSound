@@ -20,7 +20,7 @@ let state = {}, page = 'music', toastTimer, themeFilter='all', saveTimer, saveRe
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 function canAnimate(){return state.motion&&(!state.respectReducedMotion||!reduced.matches);}
 function enter(el){if(!el||!canAnimate())return;el.animate([{opacity:0,transform:'translateY(9px)'},{opacity:1,transform:'translateY(0)'}],{duration:440/(state.animationSpeed||1),easing:'cubic-bezier(.22,1,.36,1)'});}
-function moveTabIndicator(){ const button=$('[data-tab].selected');if(button){$('.tab-indicator').style.width=button.offsetWidth+'px';$('.tab-indicator').style.transform=`translateX(${button.offsetLeft}px)`;} }
+function moveTabIndicator(){ const button=$('.settings-tabs .selected');if(button){$('.tab-indicator').style.width=button.offsetWidth+'px';$('.tab-indicator').style.transform=`translateX(${button.offsetLeft}px)`;} }
 new ResizeObserver(moveTabIndicator).observe($('.settings-tabs'));
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').hidden = true, 4000); }
 function apply(s) {
@@ -57,7 +57,7 @@ function apply(s) {
   $('#pause-atmosphere').setAttribute('aria-pressed',String(!s.effectPlaying));
   document.querySelectorAll('[data-feature]').forEach(el => el.hidden = !s[el.dataset.feature]);
   if(canAnimate())for(const [el,top] of navPositions){if(el.hidden)continue;const delta=top-el.getBoundingClientRect().top;if(delta)el.animate([{transform:`translateY(${delta}px)`},{transform:'translateY(0)'}],{duration:450/s.animationSpeed,easing:'cubic-bezier(.22,1,.36,1)'});}
-  $('#background-hint').textContent = s.background === 'image' ? 'Ваше фото используется на музыкальной странице SoundCloud. Эффект можно наложить поверх.' : 'Оттенок фона сочетается с выбранной темой. Живые фоны — во вкладке «Атмосфера».';
+  $('#background-hint').textContent = s.background === 'image' ? 'Ваше фото используется во всём приложении. Эффект можно наложить поверх.' : 'Оттенок фона сочетается с выбранной темой. Живые фоны — во вкладке «Атмосфера».';
 }
 function save(patch,delay=0) {
   pendingPatch={...pendingPatch,...patch};clearTimeout(saveTimer);const revision=++saveRevision;
@@ -69,7 +69,7 @@ function save(patch,delay=0) {
   };
   if(delay)saveTimer=setTimeout(flush,delay);else flush();
 }
-function showPage(next) { page = next;document.querySelectorAll('.native-page').forEach(el=>el.hidden=el.id!=='native-'+next);$('#player').hidden=next!=='player'; $('#settings').hidden = next !== 'settings'; $('#loading').hidden = next !== 'music'; $('#error').hidden = true;$('#profile-menu').hidden=true;$('#profile-menu-button').setAttribute('aria-expanded','false');$('#player-button').classList.toggle('active',next==='player'); $('#settings-button').classList.toggle('active', next === 'settings'); if (next !== 'music') document.querySelectorAll('.nav-item[data-route]').forEach(el => el.classList.remove('active'));document.dispatchEvent(new CustomEvent('hex-page',{detail:next})); }
+function showPage(next) { page = next;document.querySelectorAll('.native-page').forEach(el=>el.hidden=el.id!=='native-'+next);$('#player').hidden=next!=='player'; $('#settings').hidden = next !== 'settings'&&!['services','transfer','local','duplicates','jobs'].includes(next);$('.settings-layout').hidden=['services','transfer','local','duplicates','jobs'].includes(next); $('#loading').hidden = next !== 'music'; $('#error').hidden = true;$('#profile-menu').hidden=true;$('#profile-menu-button').setAttribute('aria-expanded','false');$('#player-button').classList.toggle('active',next==='player'); $('#settings-button').classList.toggle('active', next === 'settings'); if (next !== 'music') document.querySelectorAll('.nav-item[data-route]').forEach(el => el.classList.remove('active'));document.dispatchEvent(new CustomEvent('hex-page',{detail:next})); }
 async function showSettings() { await window.hex.showSettings(true); showPage('settings');requestAnimationFrame(moveTabIndicator);enter($('#settings')); }
 document.querySelectorAll('[data-window]').forEach(el => el.onclick = () => window.hex.window(el.dataset.window));
 document.querySelectorAll('[data-route]').forEach(el => el.onclick = () => { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); el.classList.add('active'); showPage('music'); window.hex.navigate(el.dataset.route); });

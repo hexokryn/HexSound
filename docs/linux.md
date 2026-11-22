@@ -1,18 +1,18 @@
 # Linux
 
-Сборки версии 0.8.1 предназначены для Linux x64. Доступны AppImage, DEB и tar.gz. Windows-сборки остаются отдельными файлами.
+Сборки версии 0.9.0 предназначены для Linux x64. Доступны AppImage, DEB и tar.gz. Windows-сборки остаются отдельными файлами.
 
 ## AppImage
 
 ```sh
-chmod +x HexSound-0.8.1-linux-x86_64.AppImage
-./HexSound-0.8.1-linux-x86_64.AppImage
+chmod +x HexSound-0.9.0-linux-x86_64.AppImage
+./HexSound-0.9.0-linux-x86_64.AppImage
 ```
 
 Если FUSE отсутствует, можно извлечь AppImage в отдельную папку и запустить AppRun:
 
 ```sh
-./HexSound-0.8.1-linux-x86_64.AppImage --appimage-extract
+./HexSound-0.9.0-linux-x86_64.AppImage --appimage-extract
 ./squashfs-root/AppRun
 ```
 
@@ -21,7 +21,7 @@ chmod +x HexSound-0.8.1-linux-x86_64.AppImage
 В Debian/Ubuntu установите локальный пакет через apt, чтобы установить его зависимости:
 
 ```sh
-sudo apt install ./HexSound-0.8.1-linux-amd64.deb
+sudo apt install ./HexSound-0.9.0-linux-amd64.deb
 ```
 
 Приложение появится в меню приложений как HexSound. Для удаления используется обычный менеджер пакетов. Пользовательская библиотека и подключения хранятся отдельно от файлов программы.
