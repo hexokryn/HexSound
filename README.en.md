@@ -38,7 +38,7 @@ chmod +x HexSound-0.9.1-linux-x86_64.AppImage
 
 If FUSE is unavailable, the [Linux guide](docs/linux.md) describes how to extract and run the AppImage. It also covers dependencies and system secret storage.
 
-Quit the previous version through **tray → Выйти (Quit)** before updating. Windows stores the profile in `%APPDATA%/HexSound`, including for Portable. Automatic updates aren't implemented yet; Windows EXE files are unsigned.
+Quit the previous version through **tray → Выйти (Quit)** before updating. Windows stores the profile in `%APPDATA%/HexSound`, including for Portable. Updates are checked at startup, with download, skip and changelog controls. Windows EXE files are unsigned.
 
 ## Your library
 
