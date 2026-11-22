@@ -2,7 +2,6 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('hex', {
   experience:(action,input)=>ipcRenderer.invoke('experience',action,input),
   resumeTransfer:id=>ipcRenderer.invoke('transfer-resume',id),
-  audioEvent:event=>ipcRenderer.invoke('audio-event',event),
   checkUpdates:force=>ipcRenderer.invoke('updates-check',force),
   downloadUpdate:()=>ipcRenderer.invoke('updates-download'),
   installUpdate:()=>ipcRenderer.invoke('updates-apply'),
@@ -17,18 +16,12 @@ contextBridge.exposeInMainWorld('hex', {
   cancelConnect:id=>ipcRenderer.invoke('services-cancel',id),
   importToken:(id,input)=>ipcRenderer.invoke('services-token',id,input),
   disconnectService:id=>ipcRenderer.invoke('services-disconnect',id),
-  openService:(id,options)=>ipcRenderer.invoke('services-web',id,options),
-  serviceBrowser:id=>ipcRenderer.invoke('services-browser',id),
-  serviceHelp:()=>ipcRenderer.invoke('services-help'),
-  searchService:(id,query)=>ipcRenderer.invoke('services-search',id,query),
   library:options=>ipcRenderer.invoke('library-list',options),
   syncLibrary:id=>ipcRenderer.invoke('library-sync',id),
   planTransfer:options=>ipcRenderer.invoke('library-plan',options),
   transfer:options=>ipcRenderer.invoke('library-transfer',options),
   cancelTransfer:()=>ipcRenderer.invoke('library-cancel'),
   importLibrary:service=>ipcRenderer.invoke('library-import',service),
-  exportLibrary:()=>ipcRenderer.invoke('library-export'),
-  saveTrack:(service,track)=>ipcRenderer.invoke('library-save-track',service,track),
   openPlayer:()=>ipcRenderer.invoke('player-open'),
   showSidebar:open=>ipcRenderer.invoke('sidebar-open',open),
   playerControl:(action,value)=>ipcRenderer.invoke('player-control',action,value),
@@ -48,7 +41,7 @@ contextBridge.exposeInMainWorld('hex', {
   clearCache: () => ipcRenderer.invoke('clear-cache'),
   logout: () => ipcRenderer.invoke('logout'),
   on: (channel, callback) => {
-    if (!['settings', 'status', 'location', 'page', 'maximized', 'focus-search','playback','sidebar','services','service-windows','library-updated','transfer-progress','queue','wave','local-progress','transfer-jobs','feature-notice','playback-pending','updates'].includes(channel)) return;
+    if (!['settings', 'status', 'location', 'page', 'maximized', 'focus-search','playback','sidebar','services','library-updated','transfer-progress','queue','wave','transfer-jobs','feature-notice','playback-pending','updates'].includes(channel)) return;
     const listener = (_, value) => callback(value);
     ipcRenderer.on(channel, listener);
     return () => ipcRenderer.removeListener(channel, listener);

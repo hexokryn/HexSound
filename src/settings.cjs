@@ -8,8 +8,8 @@ const defaults = Object.freeze({
   launchAtLogin: false, customBackground: '',
   palette: 'studio', effect: 'none', effectIntensity: 55, effectSpeed: 1,
   effectPlaying: true, effectQuality: 'balanced', motionStyle: 'silk',
-  animationSpeed: 1, blur: 24, respectReducedMotion: false, lyricsOnline: true, lyricAnimation:'cascade',
-  sidebarCollapsed:false, artworkMotion:'float', artworkTilt:true
+  animationSpeed: 1, blur: 24, respectReducedMotion: true, lyricsOnline: true, lyricAnimation:'cascade',
+  sidebarCollapsed:false, artworkMotion:'still', artworkTilt:false
 });
 function validate(input) {
   const out = { ...defaults };

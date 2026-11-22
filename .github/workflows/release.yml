@@ -49,27 +49,16 @@ jobs:
           Get-Content update-transport.log
           Get-Content update-transport-error.log
           exit $application.ExitCode
-      - name: Verify native Linux interface
-        if: runner.os == 'Linux'
-        run: xvfb-run -a npx electron . --library-test
-      - name: Verify library radio and audio engine
+      - name: Verify SoundCloud playback, navigation and layout
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --experience-test
-      - name: Verify lazy startup and record process memory
-        if: runner.os == 'Linux'
-        run: xvfb-run -a npx electron . --memory-test --memory-label=linux
-      # Settings subpages keep the active tab visible on small windows.
-      # Includes the persistent bottom player alongside library navigation.
-      - name: Verify unified interface and update prompt
-        if: runner.os == 'Linux'
-        run: xvfb-run -a npx electron . --unified-test
       - name: Upload interface audit
         if: runner.os == 'Linux' && always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: interface-audit
           if-no-files-found: ignore
-          path: artifacts/hexsound-unified/*.png
+          path: artifacts/hexsound-soundcloud/*.png
       - name: Build Windows
         if: runner.os == 'Windows'
         run: npm run dist -- --publish never
@@ -77,7 +66,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $application = Start-Process -FilePath 'release/win-unpacked/HexSound.exe' -ArgumentList '--experience-test' -Wait -PassThru -RedirectStandardOutput 'experience.log' -RedirectStandardError 'experience-error.log'
+          $application = Start-Process -WindowStyle Hidden -FilePath 'release/win-unpacked/HexSound.exe' -ArgumentList '--experience-test' -Wait -PassThru -RedirectStandardOutput 'experience.log' -RedirectStandardError 'experience-error.log'
           Get-Content experience.log
           Get-Content experience-error.log
           exit $application.ExitCode

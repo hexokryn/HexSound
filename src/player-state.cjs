@@ -1,7 +1,7 @@
 const {isSoundCloud}=require('./settings.cjs');
-const {allowed}=require('./service-windows.cjs');
+const allowed=(provider,value)=>provider==='soundcloud'&&isSoundCloud(value);
 const short=(v,n=300)=>typeof v==='string'?v.slice(0,n).trim():'';
-function imageURL(value){try{const u=new URL(value);if(u.protocol==='https:'&&!u.username&&!u.password&&['sndcdn.com','scdn.co','spotifycdn.com','ytimg.com','ggpht.com','googleusercontent.com','yandex.net'].some(host=>u.hostname===host||u.hostname.endsWith('.'+host)))return u.href;}catch{}return '';}
+function imageURL(value){try{const u=new URL(value);if(u.protocol==='https:'&&!u.username&&!u.password&&['sndcdn.com'].some(host=>u.hostname===host||u.hostname.endsWith('.'+host)))return u.href;}catch{}return '';}
 function pageURL(value,provider='soundcloud'){if(!(provider==='soundcloud'?isSoundCloud(value):allowed(provider,value)))return '';const u=new URL(value);u.hash='';return u.href;}
 function sanitize(raw,{trustedMedia=false}={}){
   const p=raw?.profile||{},t=raw?.track||{};

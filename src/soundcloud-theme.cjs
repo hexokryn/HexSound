@@ -48,6 +48,13 @@ function themeCSS(s, dark) {
     ${s.background === 'image' && s.customBackground ? `body { background-image:url("${s.customBackground}")!important; background-size:cover!important; background-attachment:fixed!important; } #app,.l-container { background:transparent!important; } .l-content { background:${dark ? 'rgba(24,24,26,.94)' : 'rgba(250,250,252,.94)'}!important; }` : ''}
     /* Keep the native controls in the DOM for authentication and playback bridges. */
     .header { display:none!important; }
+    .playControls { opacity:0!important; pointer-events:none!important; transform:translateY(160px)!important; }
+    body { padding-bottom:24px!important; }
+    .announcement, .announcement__dismiss, .upsellBanner, .premiumContentBanner, .sidebarModule__pro, .creatorSubscriptionsUpsell { display:none!important; }
+    .soundTitle__title, .collectionSection__title { font-weight:500!important; }
+    .g-tabs-link { font-size:15px!important; font-weight:500!important; }
+    .sc-button, .playableTile__artwork, .sound__artwork { box-shadow:none!important; }
+
     body { padding-top:0!important; }
     .l-container.l-content { padding-top:24px!important; }
     @media(max-width:900px){html,body,#app{min-width:0!important}.l-container{min-width:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}.l-container.l-content{padding-left:18px!important;padding-right:18px!important}.l-sidebar-right{display:none!important}.l-fluid-fixed .l-main{margin-right:0!important;width:auto!important}.g-tabs{display:flex!important;overflow-x:auto!important;white-space:nowrap!important}.g-tabs-item{flex-shrink:0!important}}
@@ -75,9 +82,9 @@ function themeCSS(s, dark) {
     ${s.motion ? `
       body,.l-content,.header,.playControls,.playControls__inner,.dialog,.dropdownMenu,input,textarea { transition:background-color ${duration}ms ${ease},color ${duration}ms ${ease},border-color ${duration}ms ${ease}!important; }
       button,.sc-button,a,.playableTile__artwork,.sound__artwork { transition:background-color ${duration}ms ${ease},color ${duration}ms ${ease},border-color ${duration}ms ${ease},transform ${duration}ms ${ease},border-radius ${duration}ms ${ease},opacity ${duration}ms ${ease}!important; }
-      .playableTile__artwork:hover,.sound__artwork:hover { transform:translateY(-3px); }
+      .playableTile__artwork:hover,.sound__artwork:hover { transform:none; }
       .playableTile__playButton,.sound__playButton { transition:opacity ${duration}ms ${ease},transform ${duration}ms ${ease}!important; }
-      .sc-button:hover { transform:translateY(-1px); } .sc-button:active { transform:scale(.95); }
+      .sc-button:hover { transform:none; } .sc-button:active { transform:scale(.95); }
       .playControls__soundBadge { transition:opacity ${duration}ms ${ease}; }
       .dropdownMenu { animation:hex-menu ${duration}ms ${ease} both; transform-origin:top right; }
       @keyframes hex-menu { from { opacity:0; transform:translateY(-6px) scale(.98); } to { opacity:1; transform:none; } }

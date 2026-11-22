@@ -2,21 +2,20 @@
 <html lang="ru" data-theme="light">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'nonce-hexsound-visual'; img-src 'self' data: hexmedia: https://*.sndcdn.com https://*.scdn.co https://*.spotifycdn.com https://*.ytimg.com https://*.ggpht.com https://*.googleusercontent.com https://*.yandex.net; connect-src 'self' hexmedia:; media-src 'self' hexmedia: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>HexSound</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="personalization.css"><link rel="stylesheet" href="player.css"><link rel="stylesheet" href="responsive.css"><link rel="stylesheet" href="quiet.css"><link rel="stylesheet" href="launch.css"><link rel="stylesheet" href="library.css"><link rel="stylesheet" href="features.css"><link rel="stylesheet" href="unified.css"><link rel="stylesheet" href="dock-player.css"><style id="visual-tokens" nonce="hexsound-visual"></style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'nonce-hexsound-visual'; img-src 'self' data: https://*.sndcdn.com; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>HexSound</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="personalization.css"><link rel="stylesheet" href="player.css"><link rel="stylesheet" href="responsive.css"><link rel="stylesheet" href="quiet.css"><link rel="stylesheet" href="launch.css"><link rel="stylesheet" href="library.css"><link rel="stylesheet" href="features.css"><link rel="stylesheet" href="soundcloud-shell.css"><link rel="stylesheet" href="dock-player.css"><style id="visual-tokens" nonce="hexsound-visual"></style>
 </head>
 <body class="is-launching"><div id="launch-screen" class="launch-screen" aria-label="HexSound"><div class="launch-lockup"><span class="launch-mark"><svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><rect x="16" y="23" width="6" height="18" rx="3"/><rect x="29" y="12" width="6" height="40" rx="3"/><rect x="42" y="19" width="6" height="26" rx="3"/></svg></span><span class="launch-name">HexSound</span></div></div>
   <div class="titlebar"><span>HexSound</span><div class="window-actions"><button data-window="minimize" aria-label="Свернуть">−</button><button data-window="maximize" aria-label="Развернуть">□</button><button data-window="close" aria-label="Закрыть">×</button></div></div>
   <button class="sidebar-scrim" id="sidebar-scrim" aria-label="Закрыть меню"></button>
   <aside class="sidebar" id="app-sidebar">
     <a class="brand" href="#" aria-label="HexSound — главная"><span class="brand-mark"><svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><rect x="16" y="23" width="6" height="18" rx="3"/><rect x="29" y="12" width="6" height="40" rx="3"/><rect x="42" y="19" width="6" height="26" rx="3"/></svg></span><span class="brand-name">HexSound</span></a>
-    <div class="sidebar-navigation"><div class="nav-group"><p class="nav-label">HEXSOUND</p><button class="nav-item" id="library-button" data-icon="library"><span>Единая библиотека</span></button><button class="nav-item" id="services-button" data-icon="layers"><span>Сервисы</span></button><button class="nav-item" id="transfer-button" data-icon="shuffle"><span>Перенос музыки</span></button></div><div class="nav-group"><p class="nav-label">SOUNDCLOUD</p>
+    <div class="sidebar-navigation"><div class="nav-group">
       <button class="nav-item active" data-route="discover" data-icon="compass"><span>Обзор</span></button>
       <button class="nav-item" data-route="feed" data-feature="showFeed" data-icon="radio"><span>Моя лента</span></button>
       <button class="nav-item" id="player-button" data-icon="play"><span>Сейчас играет</span></button>
     </div>
-    <div class="nav-group"><p class="nav-label">МЕДИАТЕКА</p>
-      <button class="nav-item" data-route="library" data-icon="library"><span>Вся музыка</span></button>
+    <div class="nav-group">
       <button class="nav-item" data-route="likes" data-feature="showLikes" data-icon="heart"><span>Любимые треки</span></button>
       <button class="nav-item" data-route="playlists" data-feature="showPlaylists" data-icon="playlist"><span>Плейлисты</span></button>
       <button class="nav-item" data-route="history" data-feature="showHistory" data-icon="clock"><span>История</span></button>
@@ -54,7 +53,7 @@
     </article>
     <article id="settings" hidden>
       <div class="settings-heading"><h1>Настройки</h1><span class="saved" id="save-status">✓ Сохранено</span></div>
-      <nav class="settings-tabs" aria-label="Разделы настроек"><button class="selected" data-tab="appearance">Темы</button><button data-tab="atmosphere">Атмосфера</button><button data-tab="movement">Анимации</button><button data-tab="interface">Интерфейс</button><button data-tab="general">Приложение</button><button data-tab="account">Аккаунт</button><i class="tab-indicator" aria-hidden="true"></i></nav>
+      <nav class="settings-tabs" aria-label="Разделы настроек"><button class="selected" data-tab="appearance">Темы</button><button data-tab="atmosphere">Фон</button><button data-tab="movement">Анимации</button><button data-tab="interface">Интерфейс</button><button data-tab="general">Приложение</button><button data-tab="account">Аккаунт</button><i class="tab-indicator" aria-hidden="true"></i></nav>
       <div class="settings-layout">
         <div class="settings-panels">
           <section data-panel="appearance">
@@ -109,5 +108,5 @@
     </article>
   </main>
   <div class="toast" id="toast" role="status" hidden></div>
-  <script src="visual-system.js"></script><script src="atmosphere.js"></script><script src="lyric-motion.js"></script><script src="artwork-motion.js"></script><script src="vendor/hls.min.js"></script><script src="audio-engine.js"></script><script src="renderer.js"></script><script src="player-renderer.js"></script><script src="library-renderer.js"></script><script src="features-renderer.js"></script><script src="unified.js"></script><script src="dock-player.js"></script><script src="update-ui.js"></script><script src="launch.js"></script>
+  <script src="visual-system.js"></script><script src="atmosphere.js"></script><script src="lyric-motion.js"></script><script src="artwork-motion.js"></script><script src="renderer.js"></script><script src="player-renderer.js"></script><script src="transfer-renderer.js"></script><script src="wave-renderer.js"></script><script src="soundcloud-shell.js"></script><script src="dock-player.js"></script><script src="update-ui.js"></script><script src="launch.js"></script>
 </body></html>

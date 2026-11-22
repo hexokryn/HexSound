@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const {EventEmitter}=require('node:events');
-const {allowed,providers,createServiceWindows}=require('../src/service-windows.cjs');
+
 const {canControl,createPlaybackClock}=require('../src/player-renderer.js');
 
 function webFixture({audio=null,buttons=[]}={}){
@@ -50,56 +50,6 @@ test('generic toggle fallback only invokes an enabled visible playback button',a
   const h=webFixture({buttons:[button('Play',0),button('Pause',20,true),button('Pause'),button('Delete')]});
   assert.equal(await h.player.control('toggle'),true);assert.equal(clicks,1);
   h.media.playbackState='paused';assert.equal(await h.player.control('toggle'),false);assert.equal(clicks,1);
-});
-
-test('provider URLs stay inside HTTPS host allowlists without userinfo or lookalike hosts',()=>{
-  for(const [id,p] of Object.entries(providers)){assert.equal(allowed(id,p.home),true);assert.equal(allowed(id,p.login),true);}
-  for(const value of ['http://open.spotify.com/','https://open.spotify.com.attacker.test/','https://attacker.test/?next=https://open.spotify.com','https://user:pass@open.spotify.com/','file:///etc/passwd','javascript:alert(1)','data:text/html,hello'])assert.equal(allowed('spotify',value),false,value);
-  assert.equal(allowed('unknown','https://open.spotify.com'),false);
-  assert.equal(allowed('spotify','https://music.youtube.com',true),false);
-  assert.equal(allowed('youtube','https://open.spotify.com',true),false);
-  assert.equal(allowed('spotify','https://accounts.google.com'),false);
-  assert.equal(allowed('spotify','https://accounts.google.com',true),true);
-});
-
-function windowFixture(){
-  const windows=[],external=[];
-  class Contents extends EventEmitter{
-    constructor(){super();this.url='';this.session={setPermissionRequestHandler:handler=>this.permission=handler,setPermissionCheckHandler:handler=>this.permissionCheck=handler};}
-    getURL(){return this.url;}
-    setWindowOpenHandler(handler){this.openHandler=handler;}
-    async executeJavaScript(){throw Error('provider unavailable');}
-  }
-  class Window extends EventEmitter{
-    constructor(options){super();this.options=options;this.webContents=new Contents();this.destroyed=false;windows.push(this);}
-    isDestroyed(){return this.destroyed;}
-    show(){this.visible=true;}
-    hide(){this.visible=false;}
-    isVisible(){return !!this.visible;}
-    async loadURL(url){this.webContents.url=url;}
-    destroy(){this.destroyed=true;this.emit('closed');}
-  }
-  const services=createServiceWindows({BrowserWindow:Window,parent:{},onExternal:url=>external.push(url)});
-  return {services,windows,external};
-}
-
-test('service windows isolate provider sessions and convert failed remote actions to false',async()=>{
-  const h=windowFixture();await h.services.open('spotify');await h.services.open('youtube');
-  const [spotify,youtube]=h.windows;
-  assert.notEqual(spotify.options.webPreferences.partition,youtube.options.webPreferences.partition);
-  for(const win of h.windows){assert.equal(win.options.webPreferences.nodeIntegration,false);assert.equal(win.options.webPreferences.contextIsolation,true);assert.equal(win.options.webPreferences.sandbox,true);let permitted;win.webContents.permission(null,'camera',value=>permitted=value);assert.equal(permitted,false);assert.equal(win.webContents.permissionCheck(),false);}
-  assert.equal(await h.services.control('spotify','next'),false);assert.equal(await h.services.control('missing','toggle'),false);assert.equal(await h.services.snapshot('spotify'),null);
-  let blocked=false;spotify.webContents.emit('will-navigate',{preventDefault(){blocked=true;}},'https://music.youtube.com');assert.equal(blocked,true);assert.equal(h.external[0],'https://music.youtube.com');
-  assert.equal(spotify.webContents.openHandler({url:'https://attacker.test'}).action,'deny');
-  await assert.rejects(h.services.open('spotify',{url:'https://music.youtube.com'}),/Недопустимая/);
-  h.services.close();assert.equal(h.services.status().length,0);assert.equal(spotify.isDestroyed(),true);
-});
-
-test('closing an idle service releases its renderer while playing and reopened windows survive',async()=>{
-  const h=windowFixture();await h.services.open('spotify');let win=h.windows[0];
-  win.webContents.executeJavaScript=async()=>({track:{playing:false}});win.emit('close',{preventDefault(){}});await new Promise(r=>setImmediate(r));assert.equal(win.isDestroyed(),true);
-  await h.services.open('spotify');win=h.windows[1];win.webContents.executeJavaScript=async()=>({track:{playing:true}});win.emit('close',{preventDefault(){}});await new Promise(r=>setImmediate(r));assert.equal(win.isDestroyed(),false);
-  let resolve;win.webContents.executeJavaScript=()=>new Promise(r=>resolve=r);win.emit('close',{preventDefault(){}});win.show();resolve({track:{playing:false}});await new Promise(r=>setImmediate(r));assert.equal(win.isDestroyed(),false);h.services.close();
 });
 
 function remoteFixture({audio=null,filled=25.5,full=100,elapsed='0:10'}={}){

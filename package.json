@@ -1,7 +1,7 @@
 {
   "name": "hexsound",
-  "version": "0.9.3",
-  "description": "Music library, personal radio and player for Windows and Linux",
+  "version": "0.10.0",
+  "description": "SoundCloud desktop player with themes, lyrics, personal radio and file imports",
   "main": "src/main.cjs",
   "author": "hexokryn",
   "homepage": "https://github.com/hexokryn/HexSound",
@@ -17,15 +17,13 @@
     "pack": "electron-builder --dir",
     "dist:linux": "electron-builder --linux AppImage deb tar.gz",
     "check:library": "electron . --library-test",
-    "postinstall": "node scripts/copy-vendor.cjs",
     "check:experience": "electron . --experience-test",
     "check:memory": "electron . --memory-test",
     "check:unified": "electron . --unified-test"
   },
   "devDependencies": {
     "electron": "45.3.4",
-    "electron-builder": "26.18.0",
-    "hls.js": "^1.7.4"
+    "electron-builder": "26.18.0"
   },
   "build": {
     "appId": "app.hexsound.desktop",
@@ -59,7 +57,7 @@
       "desktop": {
         "entry": {
           "StartupWMClass": "HexSound",
-          "Keywords": "Music;Audio;SoundCloud;Spotify;"
+          "Keywords": "Music;Audio;SoundCloud;"
         }
       }
     },
@@ -83,8 +81,5 @@
     "portable": {
       "artifactName": "HexSound-${version}-portable.exe"
     }
-  },
-  "dependencies": {
-    "music-metadata": "^12.7.0"
   }
 }
