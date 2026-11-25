@@ -49,7 +49,7 @@ jobs:
           Get-Content update-transport.log
           Get-Content update-transport-error.log
           exit $application.ExitCode
-      - name: Verify SoundCloud playback, navigation and layout
+      - name: Verify SoundCloud volume, personal radio and layout
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron . --experience-test
       - name: Upload interface audit

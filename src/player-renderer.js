@@ -108,7 +108,7 @@
     document.querySelectorAll('[data-control]').forEach(el=>el.disabled=!canControl(track,el.dataset.control));$('#sidebar-play').disabled=!canControl(track,'toggle');
     icon($('#player-play'),track.playing?'pause':'play');$('#player-play').setAttribute('aria-label',track.playing?'Приостановить':'Воспроизвести');
     $('#record-like').setAttribute('aria-pressed',String(!!track.liked));$('[data-control="shuffle"]').setAttribute('aria-pressed',String(!!track.shuffle));$('#player-repeat').setAttribute('aria-pressed',String(track.repeat!=='off'));$('#repeat-one').hidden=track.repeat!=='one';
-    $('#player-seek').max=String(track.duration||1);$('#player-seek').disabled=!track.seekable||!canControl(track,'seek');$('#player-duration').textContent=time(track.duration);$('#player-volume').disabled=!canControl(track,'volume');if(document.activeElement!==$('#player-volume'))$('#player-volume').value=String(track.volume??1);
+    $('#player-seek').max=String(track.duration||1);$('#player-seek').disabled=!track.seekable||!canControl(track,'seek');$('#player-duration').textContent=time(track.duration);$('#player-volume').disabled=!canControl(track,'volume');window.HexVolume.sync($('#player-volume'),track.volume??1);
     $('#record-link').disabled=!track.url;
     syncArtwork();
     if(changed){lyricsKey='';lyrics={status:'idle',lines:[]};activeLine=-2;if(page==='player'){enter($('.record-side'));if(fetch)fetchLyrics();else requestVersion++;}}
@@ -125,7 +125,7 @@
   document.querySelectorAll('[data-control]').forEach(el=>el.onclick=async()=>{if(!await window.hex.playerControl(el.dataset.control))toast('Это действие сейчас недоступно в сервисе.');});
   $('#player-seek').oninput=()=>{scrubbing=true;$('#player-time').textContent=time(Number($('#player-seek').value));};
   $('#player-seek').onchange=async()=>{const at=Number($('#player-seek').value);scrubbing=false;if(await window.hex.playerControl('seek',at)){clock.seek(at);activeLine=-2;updateLine(at,{immediate:true});}else toast('Этот трек не разрешает перемотку.');};
-  $('#player-volume').oninput=()=>window.hex.playerControl('volume',Number($('#player-volume').value));
+  window.HexVolume.bind($('#player-volume'),value=>window.hex.playerControl('volume',value));
   $('#record-link').onclick=()=>{if(live.track.url){showPage('music');window.hex.navigate(live.track.url);}};
   $('#lyrics-retry').onclick=()=>fetchLyrics(true);
   $('#lyrics-replay').onclick=()=>revealActive(true);

@@ -16,9 +16,9 @@ SoundCloud для Windows и Linux с оформлением HexSound. Обзо�
 
 ## Скачать
 
-[Windows Setup](https://github.com/hexokryn/HexSound/releases/download/v0.10.0/HexSound-0.10.0-setup.exe) · [Windows Portable](https://github.com/hexokryn/HexSound/releases/download/v0.10.0/HexSound-0.10.0-portable.exe)
+[Windows Setup](https://github.com/hexokryn/HexSound/releases/download/v0.11.0/HexSound-0.11.0-setup.exe) · [Windows Portable](https://github.com/hexokryn/HexSound/releases/download/v0.11.0/HexSound-0.11.0-portable.exe)
 
-[Linux AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.10.0/HexSound-0.10.0-linux-x86_64.AppImage) · [DEB](https://github.com/hexokryn/HexSound/releases/download/v0.10.0/HexSound-0.10.0-linux-amd64.deb) · [tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.10.0/HexSound-0.10.0-linux-x64.tar.gz)
+[Linux AppImage](https://github.com/hexokryn/HexSound/releases/download/v0.11.0/HexSound-0.11.0-linux-x86_64.AppImage) · [DEB](https://github.com/hexokryn/HexSound/releases/download/v0.11.0/HexSound-0.11.0-linux-amd64.deb) · [tar.gz](https://github.com/hexokryn/HexSound/releases/download/v0.11.0/HexSound-0.11.0-linux-x64.tar.gz)
 
 При переходе с 0.9.2 и старше используйте ручную установку: в прежнем загрузчике была ошибка редиректа GitHub. Сессия SoundCloud и оформление сохраняются. Ветки с другими сервисами больше не входят в приложение; прежние файлы пользовательских данных автоматически не удаляются.
 

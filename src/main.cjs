@@ -85,8 +85,8 @@ async function applyTheme() {
   send('settings', { ...settings, resolvedDark: dark() });
 }
 function status(value) { send('status', value); }
-async function navigate(route,{background=false}={}) {
-  await experience?.stopNative();
+async function navigate(route,{background=false,preserveWave=false}={}) {
+  if(!preserveWave)await experience?.stopNative();
   if(!background)nativePage='music';playbackProvider='soundcloud';nextPoll=0;
   sidebarOpen=false;send('sidebar',false);
   const routes = { discover: '/discover', feed: '/feed', library: '/you/library', likes: '/you/likes', playlists: '/you/sets', history: '/you/history', upload: '/upload', account: '/you' };
@@ -160,7 +160,7 @@ async function createWindow() {
   services=createServiceHub({directory:path.join(app.getPath('userData'),'services'),safeStorage,enabled:['soundcloud'],fetcher:(url,init)=>net.fetch(url,init),openExternal:url=>shell.openExternal(url),onChange:value=>send('services',value)});
   library=createLibrary(path.join(app.getPath('userData'),'library.json'),{getAdapter:id=>services.getAdapter(id)});imports=createLibrary(path.join(app.getPath('userData'),'file-imports.json'),{getAdapter:id=>services.getAdapter(id)});
   webDiscovery=require('./web-discovery.cjs').createWebDiscovery({BrowserWindow,parent:win});
-  experience=createExperience({directory:app.getPath('userData'),services,library,send,handle,win,dialog,getPlayback:()=>playback,openSource,webDiscovery,ensureLibrary:()=>syncSource('soundcloud')});
+  experience=createExperience({directory:app.getPath('userData'),services,library,send,handle,win,dialog,control:playerControl,getPlayback:()=>playback,openSource,webDiscovery,ensureLibrary:()=>syncSource('soundcloud')});
   sessionLibrary=createSessionLibrary({BrowserWindow,parent:win,directory:app.getPath('userData'),onImport:document=>{library.importData(document);send('library-updated');},onChange:()=>send('services',publicServices())});
   updates=createUpdates({version:app.getVersion(),directory:path.join(app.getPath('userData'),'updates'),packaged:app.isPackaged&&!smoke,onChange:value=>send('updates',value),install:installUpdate});
   Menu.setApplicationMenu(null);
@@ -232,7 +232,7 @@ async function openSource(id,source={}){
  if(id!=='soundcloud')throw Error('Доступен только SoundCloud.');const url=typeof source.url==='string'?source.url:'';if(url&&!isSoundCloud(url))throw Error('Нужна ссылка SoundCloud.');
  if(source.login){loginReturn=true;return navigate('https://soundcloud.com/signin');}
  if(!source.play)return navigate(url||'discover');
- const revision=++sourcePlayRevision;await navigate(url||'discover');const target=new URL(url||'https://soundcloud.com/discover').pathname;
+ const revision=++sourcePlayRevision;await navigate(url||'discover',{background:nativePage==='wave',preserveWave:true});const target=new URL(url||'https://soundcloud.com/discover').pathname;
  for(let i=0;i<24;i++){await new Promise(r=>setTimeout(r,400));if(revision!==sourcePlayRevision)return false;if(!isSoundCloud(view.webContents.getURL())||new URL(view.webContents.getURL()).pathname!==target)continue;const result=await view.webContents.executeJavaScript(require('./soundcloud-play.cjs').startTrackScript(url),true).catch(()=>false);if(result){nextPoll=0;await pollPlayback();return true;}}
  throw Error('SoundCloud не запустил трек. Страница открыта — проверьте вход и доступность записи.');
 }

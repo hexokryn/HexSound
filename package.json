@@ -1,6 +1,6 @@
 {
   "name": "hexsound",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "SoundCloud desktop player with themes, lyrics, personal radio and file imports",
   "main": "src/main.cjs",
   "author": "hexokryn",
