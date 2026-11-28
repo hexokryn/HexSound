@@ -14,6 +14,8 @@ Windows: python scripts/install-qt.py, затем ./scripts/build-native.ps1 -Te
 
 Подробности: docs/development.ru.md. Целевая версия 0.13.0. Фактическое состояние публикации проверять в GitHub Releases. Старые опубликованные релизы не перезаписывать. Workflow публикует новый Windows-релиз только по коммиту main с префиксом Release или ручному publish; проверки, упаковка и тест отката должны пройти до публикации.
 
+28 ноября 2026 опубликован Windows-релиз v0.13.0: Setup, native-portable.zip и SHA256SUMS. GitHub Actions run 46158076143, Windows job 141019023620 прошёл на Qt 6.12.1 / WebEngine 6.140.0: все unit, smoke сборки и папки без Qt в PATH, упаковка и тесты отката. Локальный запуск нового WebEngine из среды Codex возвращал renderer exit 18; это отличается от успешной проверки CI, причину не считать доказанной. Linux с Qt 6.12.1 собрался и прошёл три набора unit, но GUI-smoke завершился ошибкой загрузки xcb-плагина; Linux-пакеты не опубликованы.
+
 ## Проверки
 
 native_tests и controller_tests; затем HexSound.exe --smoke artifacts/native-smoke. Smoke использует отдельный профиль и настоящий локальный WAV, проверяет play/pause/volume, скрытый каталог, SPA-навигацию и QML. Это не проверка частного аккаунта SoundCloud и API-записи. Обязательно повторить smoke на развернутой папке без Qt в PATH. Linux проверять отдельно, не объявлять готовым по одной Windows-сборке. Установщик обновления в тестах не запускать.
