@@ -6,6 +6,7 @@ Archive SHA-1 values come from the official HTTPS repository, as in Qt Installer
 import argparse
 import concurrent.futures
 import hashlib
+import os
 import pathlib
 import shutil
 import subprocess
@@ -38,6 +39,8 @@ def main():
     ]
     modules = {"qtbase", "qtdeclarative", "qtsvg", "qttools", "qttranslations",
                "qtwebchannel", "qtpositioning", "qtshadertools", "qtwebengine"}
+    if not windows:
+        modules.add("icu")
     output = pathlib.Path(args.output).resolve()
     destination = output / VERSION / directory
     downloads = output / "downloads"
@@ -76,11 +79,16 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         archives = list(pool.map(download, jobs))
-    # Windows bsdtar handles 7z; Linux CI installs p7zip-full.
+    # Windows Server 2022 bsdtar lacks LZMA; GitHub runners include 7-Zip.
+    extractor = shutil.which("7z")
+    if windows and not extractor:
+        installed = pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "7-Zip/7z.exe"
+        if installed.exists():
+            extractor = str(installed)
     for archive in archives:
         print("Extracting " + archive.name, flush=True)
-        command = (["tar", "-xf", str(archive), "-C", str(destination)] if windows
-                   else ["7z", "x", "-y", "-o" + str(destination), str(archive)])
+        command = ([extractor, "x", "-y", "-o" + str(destination), str(archive)] if extractor
+                   else ["tar", "-xf", str(archive), "-C", str(destination)])
         subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
     (destination / "bin" / "qt.conf").write_text("[Paths]\nPrefix=..\n", encoding="utf-8")
     print("SDK installed: " + str(destination), flush=True)
