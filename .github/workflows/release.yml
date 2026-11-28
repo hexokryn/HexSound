@@ -1,120 +1,114 @@
-name: Build and publish Windows and Linux
-
+name: Native C++ builds
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a new Windows release after checks (never overwrite)
+        type: boolean
+        default: false
+  pull_request:
   push:
     branches: [main]
-    paths: [.github/workflows/release.yml]
-    tags: ['v*']
-
+    paths: ['native/**', 'CMakeLists.txt', 'scripts/**', '.github/workflows/release.yml']
 permissions:
   contents: read
-
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
+env:
+  QT_VERSION: '6.12.1'
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-22.04]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
-    env:
-      ELECTRON_BUILDER_COMPRESSION_LEVEL: '3'
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '22'
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      # Canonical-path tests use native realpath on Windows and Linux.
-      - name: Test
-        run: npm test
-      - name: Verify GitHub update redirects in Electron (Linux)
-        if: runner.os == 'Linux'
-        run: xvfb-run -a npx electron scripts/check-update-transport.cjs
-      - name: Verify GitHub update redirects in Electron (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          node -e "require('electron')"
-          $application = Start-Process -WindowStyle Hidden -FilePath 'node_modules/electron/dist/electron.exe' -ArgumentList 'scripts/check-update-transport.cjs' -Wait -PassThru -RedirectStandardOutput 'update-transport.log' -RedirectStandardError 'update-transport-error.log'
-          Get-Content update-transport.log
-          Get-Content update-transport-error.log
-          exit $application.ExitCode
-      - name: Verify SoundCloud volume, personal radio and layout
-        if: runner.os == 'Linux'
-        run: xvfb-run -a npx electron . --experience-test
-      - name: Upload interface audit
-        if: runner.os == 'Linux' && always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: interface-audit
-          if-no-files-found: ignore
-          path: artifacts/hexsound-soundcloud/*.png
-      - name: Build Windows
-        if: runner.os == 'Windows'
-        run: npm run dist -- --publish never
-      - name: Verify packaged Windows application
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $application = Start-Process -WindowStyle Hidden -FilePath 'release/win-unpacked/HexSound.exe' -ArgumentList '--experience-test' -Wait -PassThru -RedirectStandardOutput 'experience.log' -RedirectStandardError 'experience-error.log'
-          Get-Content experience.log
-          Get-Content experience-error.log
-          exit $application.ExitCode
-      - name: Build Linux
-        if: runner.os == 'Linux'
-        run: npm run dist:linux -- --publish never
-      - name: Verify packaged Linux application
-        if: runner.os == 'Linux'
-        run: xvfb-run -a ./release/linux-unpacked/hexsound --experience-test
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: hexsound-${{ runner.os }}
-          retention-days: 3
-          if-no-files-found: error
-          path: |
-            release/*.exe
-            release/*.AppImage
-            release/*.deb
-            release/*.tar.gz
-  publish:
-    needs: build
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 60
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/setup-python@v5
         with:
-          pattern: hexsound-*
-          merge-multiple: true
-          path: release
-      - name: Publish checked builds
+          python-version: '3.12'
+      - name: Install Qt and WebEngine from official repositories
+        run: python scripts/install-qt.py --output "$env:RUNNER_TEMP/Qt"
+      - name: Build and test
+        run: ./scripts/build-native.ps1 -QtRoot "$env:RUNNER_TEMP/Qt/$env:QT_VERSION/msvc2022_64" -BuildDir build -Test -Deploy
+      - name: Verify deployed folder without Qt in PATH
+        shell: pwsh
+        run: |
+          $env:PATH = (($env:PATH -split ';') | Where-Object { $_ -notmatch '(?i)[/\\]Qt[/\\]' }) -join ';'
+          $app = Start-Process -WindowStyle Hidden -FilePath "$PWD/release/HexSound-native/HexSound.exe" -ArgumentList '--smoke','artifacts/native-windows-packaged' -PassThru -RedirectStandardOutput 'packaged-out.log' -RedirectStandardError 'packaged-error.log'
+          if (!$app.WaitForExit(60000)) { $app.Kill(); throw 'Smoke timeout' }
+          Get-Content packaged-error.log
+          if ($app.ExitCode -ne 0) { throw "Smoke failed: $($app.ExitCode)" }
+      - name: Build setup and portable, verify update replacement and rollback
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'NSIS installation failed' }
+          $env:PATH = "${env:ProgramFiles(x86)}/NSIS;$env:PATH"
+          ./scripts/package-native.ps1
+          ./scripts/test-update.ps1 -BuildDir build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: native-Windows
+          retention-days: 7
+          path: |
+            artifacts/native-*/*.png
+            artifacts/native-*/report.json
+            artifacts/native-*/qt.log
+            .tools/*-result.txt
+            release/*native-portable.zip
+            release/*setup.exe
+            release/*-SHA256SUMS.txt
+      - name: Publish a new Windows release
+        if: github.ref == 'refs/heads/main' && ((github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release ')) || (github.event_name == 'workflow_dispatch' && inputs.publish))
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
-          set -euo pipefail
-          version="$(node -p "require('./package.json').version")"
-          tag="v$version"
-          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "$tag" ]]; then echo 'Tag and package version differ'; exit 1; fi
-          (cd release && sha256sum *.exe *.AppImage *.deb *.tar.gz > SHA256SUMS.txt)
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft' > /tmp/hexsound-draft; then
-            if [[ "$(cat /tmp/hexsound-draft)" == false ]]; then echo 'Already published; keeping existing assets.'; exit 0; fi
-          else
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" --title "HexSound $version" --notes-file "docs/release-$tag.md"
-          fi
-          gh release upload "$tag" release/* --repo "$GITHUB_REPOSITORY" --clobber
-          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          $version = [regex]::Match((Get-Content -Raw CMakeLists.txt), 'project\(HexSound VERSION ([0-9.]+)').Groups[1].Value
+          if (!$version) { throw 'Missing version' }
+          $tag = "v$version"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists; refusing to overwrite" }
+          $assets = @("release/HexSound-$version-setup.exe", "release/HexSound-$version-native-portable.zip", "release/HexSound-$version-SHA256SUMS.txt")
+          foreach ($asset in $assets) { if (!(Test-Path -LiteralPath $asset)) { throw "Missing $asset" } }
+          gh release create $tag @assets --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "HexSound $version" --notes-file "docs/releases/$version.md" --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install SDK and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build xvfb patchelf dpkg-dev p7zip-full libnss3 libxkbcommon0 libxkbcommon-x11-0 libxcomposite1 libxcursor1 libxi6 libxtst6 libxrandr2 libxss1 libasound2t64 libegl1-mesa-dev libxcb-cursor0 libopengl0 libxdamage1 libgl1-mesa-dri
+          python scripts/install-qt.py --output "$RUNNER_TEMP/Qt"
+      - name: Build, test and package Linux
+        run: |
+          export PATH="$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64/bin:$PATH"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64"
+          cmake --build build --parallel 4
+          ctest --test-dir build --output-on-failure
+          xvfb-run -a ./build/HexSound --smoke artifacts/native-linux
+          cmake --install build --prefix "$PWD/release/linux"
+          xvfb-run -a ./release/linux/bin/HexSound --smoke artifacts/native-linux-packaged
+          cpack --config build/CPackConfig.cmake -G DEB
+          tar -C release -czf release/HexSound-0.13.0-linux-x64.tar.gz linux
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: native-Linux
+          retention-days: 7
+          path: |
+            artifacts/native-*/*.png
+            artifacts/native-*/report.json
+            artifacts/native-*/qt.log
+            release/*.tar.gz
+            ./*.deb

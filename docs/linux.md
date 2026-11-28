@@ -1,56 +1,18 @@
 # Linux
 
-Сборки версии 0.9.2 предназначены для Linux x64. Доступны AppImage, DEB и tar.gz. Windows-сборки остаются отдельными файлами.
+Код использует C++20 и Qt 6.8+; Windows DPAPI изолирован через Q_OS_WIN. На Linux API-секреты остаются в памяти. QML и DOM-мост общие для платформ.
 
-## AppImage
-
-```sh
-chmod +x HexSound-0.9.2-linux-x86_64.AppImage
-./HexSound-0.9.2-linux-x86_64.AppImage
-```
-
-Если FUSE отсутствует, можно извлечь AppImage в отдельную папку и запустить AppRun:
+Установите CMake 3.21+, Ninja, GCC/Clang и Qt Quick/Controls/WebEngine/Network/Test с зависимостями. Для SDK Qt задайте CMAKE_PREFIX_PATH. Qt WebEngine требует системные NSS, EGL/OpenGL и поддерживаемую графическую среду.
 
 ```sh
-./HexSound-0.9.2-linux-x86_64.AppImage --appimage-extract
-./squashfs-root/AppRun
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/opt/Qt/6.12.1/gcc_64
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+xvfb-run -a ./build/HexSound --smoke artifacts/native-linux
+cmake --install build --prefix "$PWD/release/linux"
+./release/linux/bin/HexSound --smoke artifacts/native-linux-packaged
 ```
 
-## DEB
+CMake использует штатный Qt deployment script и CPack TGZ/DEB; bin/HexSound и desktop entry создаются при установке. Пакет должен включать Qt WebEngine resources/helper и QML-модули. Проверить установку, зависимости и запуск на чистой целевой системе перед публикацией. Устанавливать DEB из автотеста не нужно.
 
-В Debian/Ubuntu установите локальный пакет через apt, чтобы установить его зависимости:
-
-```sh
-sudo apt install ./HexSound-0.9.2-linux-amd64.deb
-```
-
-Приложение появится в меню приложений как HexSound. Для удаления используется обычный менеджер пакетов. Пользовательская библиотека и подключения хранятся отдельно от файлов программы.
-
-## Архив
-
-Распакуйте tar.gz в отдельную папку и запустите `hexsound` из неё. В архив входят необходимые файлы Electron; перенос одного исполняемого файла без соседних файлов не поддерживается.
-
-## Профиль и ключи
-
-Обычный профиль — `~/.config/HexSound`; при заданном `XDG_CONFIG_HOME` используется соответствующий каталог конфигурации. Здесь находятся локальная библиотека, сессии сайтов и настройки.
-
-API-секреты сохраняются через Electron safeStorage только при доступном системном Secret Service/KWallet. Если Linux backend сообщает `basic_text` или шифрование недоступно, секреты действуют лишь до выхода и не записываются в незашифрованный файл. Состояние видно на экране сервиса. Экспорт библиотеки не включает токены или cookies.
-
-Автозапуск создаёт пользовательский `autostart/hexsound.desktop` в каталоге XDG-конфигурации. При выключении этой настройки удаляется только этот файл. Для AppImage сохраняется путь к самому AppImage.
-
-Закрытие в трей по умолчанию выключено на новом Linux-профиле: поддержка значка зависит от окружения рабочего стола. Его можно включить в настройках. Если создать значок не удалось, закрытие окна завершает приложение.
-
-## Проверка и сборка
-
-CI собирает Linux на Ubuntu 22.04. Интерфейс, IPC, подключение тестового токена и перенос с проверкой совпадений проверяются под Xvfb на изолированных данных. Проверка аккаунтов музыкальных сервисов требует их разрешений и действующих ключей.
-
-```sh
-npm ci
-npm test
-xvfb-run -a npm run check:library
-npm run dist:linux
-```
-
-Для запуска интерфейса нужна графическая сессия X11/Wayland и системные библиотеки Electron. Аудио и DRM зависят от официального веб-плеера; сборки не добавляют обход ограничений сервиса или Widevine. Песочница и проверка сертификатов не отключаются.
-
-[AppImage: запуск](https://docs.appimage.org/user-guide/run-appimages.html) · [Electron: safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage)
+Локальная рабочая машина — Windows. Новая Linux-сборка пока не запускалась; наличие CMake и workflow не является подтверждением совместимости. Оставляйте sandbox включённым, не добавляйте --no-sandbox для обхода проблем запуска.

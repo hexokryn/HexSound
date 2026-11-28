@@ -1,9 +1,19 @@
 # Third-party components
 
-HexSound is MIT licensed. Dependencies retain their own licences.
+HexSound is MIT licensed. Third-party components retain their own licences.
 
-- [HLS.js](https://github.com/video-dev/hls.js), version 1.7.4: Apache License 2.0. The local browser bundle is copied from the pinned npm dependency during installation; its full licence is included at [src/vendor/hls.LICENSE](src/vendor/hls.LICENSE).
-- [music-metadata](https://github.com/Borewit/music-metadata), version 12.7.0: MIT. Used in the main process to read local audio metadata. It and its production dependencies are packaged with their npm licence files.
-- [Electron](https://github.com/electron/electron): MIT, with Chromium and other component notices included in packaged distributions.
+## Qt
 
-`npm ci` installs versions fixed by package-lock.json. `scripts/copy-vendor.cjs` copies the browser bundle from that installation, with no runtime script downloads.
+The C++ application dynamically links Qt Core, Gui, Widgets, Network, Quick, Quick Controls and WebEngine, plus their runtime modules. The release SDK is Qt 6.12.1 with Qt WebEngine 6.140.0. Earlier development builds used Qt 6.8.3. Qt is distributed under its applicable open-source licences, including LGPL-3.0 and the module-specific licences shipped by Qt.
+
+Copies of [LGPL-3.0](native/licenses/LGPL-3.0.txt) and [GPL-3.0](native/licenses/GPL-3.0.txt) are provided. The application does not statically link Qt; the deployed Qt libraries can be replaced with compatible builds. Qt source and module licence information are available from [Qt's source repositories](https://code.qt.io/cgit/qt/) and [Qt licensing documentation](https://doc.qt.io/qt-6/licensing.html). Match the source version to the SDK used for your build.
+
+## Chromium and WebEngine
+
+Qt WebEngine includes Chromium and its third-party components. Preserve Qt WebEngine's resource packs, helper executable and licence notices when packaging. Chromium component notices are included in the engine's built-in credits. [Qt WebEngine licence information](https://doc.qt.io/qt-6/qtwebengine-licensing.html).
+
+## Network services
+
+SoundCloud supplies its website and playback service. LRCLIB supplies lyric data. Their service terms apply independently of HexSound's source licence. No audio, album artwork or lyric catalogue is bundled with this repository.
+
+The JavaScript files under native/assets are HexSound's DOM bridge for the remote SoundCloud page. They are not a Node.js application.

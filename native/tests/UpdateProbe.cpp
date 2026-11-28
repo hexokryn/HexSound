@@ -1,0 +1,2 @@
+#include <QtCore>
+int main(int argc,char**argv){QCoreApplication app(argc,argv);QFile arguments(app.applicationDirPath()+"/restart-args.json");if(!arguments.open(QIODevice::WriteOnly))return 1;arguments.write(QJsonDocument::fromVariant(app.arguments()).toJson());arguments.close();QFile marker(app.applicationDirPath()+"/restart-proof.txt");return marker.open(QIODevice::WriteOnly)&&marker.write("restarted")>0?0:1;}

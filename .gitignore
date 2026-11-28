@@ -1,4 +1,9 @@
 node_modules/
+build/
+build-*/
+CMakeUserPresets.json
+*.user
+*.part
 release/
 .tools/
 artifacts/

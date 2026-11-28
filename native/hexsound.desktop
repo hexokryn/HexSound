@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=HexSound
+Comment=SoundCloud desktop player
+Exec=HexSound
+Icon=hexsound
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;

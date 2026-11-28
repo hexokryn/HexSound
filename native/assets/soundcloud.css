@@ -1,0 +1,56 @@
+:root { color-scheme: var(--hex-mode); }
+html, body, #app, .l-container, .l-content, .l-main, .l-fluid-fixed {
+  background: var(--hex-bg) !important; color: var(--hex-ink) !important;
+}
+body, input, button, textarea, select { font-family: system-ui, sans-serif !important; }
+body { padding-top: 0 !important; padding-bottom: 24px !important; }
+.header { display: none !important; }
+.l-container.l-content { padding-top: 24px !important; }
+/* Retain SoundCloud's controls and geometry for the playback bridge. */
+.playControls { opacity: 0 !important; pointer-events: none !important; transform: translateY(160px) !important; }
+a, .sc-link-dark, .soundTitle__title, .trackItem__trackTitle, .collectionSection__title,
+.playableTile__mainHeading, h1, h2, h3, h4 { color: var(--hex-ink) !important; }
+.sc-text-light, .sc-type-light, .sc-link-light, .soundTitle__username, .sound__uploadTime,
+.playableTile__usernameHeading, .playableTile__releaseData { color: var(--hex-muted) !important; }
+.sound, .trackList__item, .collectionSection, .sidebarModule, .l-sidebar-left, .l-sidebar-right,
+.g-tabs, .sc-border-light-bottom, .sc-border-light { border-color: var(--hex-line) !important; }
+.sound__body, .commentForm, .commentForm__wrapper, .listenEngagement, .dropdownMenu,
+.dialog, .modal__content { background: var(--hex-surface) !important; color: var(--hex-ink) !important; }
+input, textarea, select { color: var(--hex-ink) !important; background: var(--hex-surface) !important; border-color: var(--hex-line) !important; }
+.sc-button { border-radius: 8px !important; border-color: var(--hex-line) !important; background: var(--hex-surface) !important; color: var(--hex-ink) !important; box-shadow: none !important; }
+.sc-button-cta, .sc-button-play, .playButton, .sc-button-follow.sc-button-selected { background: var(--hex-accent) !important; border-color: var(--hex-accent) !important; color: var(--hex-bg) !important; }
+.sc-button-like.sc-button-selected, .sc-button-repost.sc-button-selected, .g-tabs-link.active { color: var(--hex-accent) !important; }
+.g-tabs-link.active { border-color: var(--hex-accent) !important; }
+.g-tabs-link { font-size: 15px !important; font-weight: 500 !important; }
+.sc-artwork, .sound__artwork, .playableTile__artwork, .sc-artwork > span { border-radius: 12px !important; overflow: hidden; box-shadow: none !important; }
+.collectionSection { margin-bottom: 32px !important; }
+.announcement, .announcements, .upsellBanner, .premiumContentBanner, .sidebarModule__pro,
+.creatorSubscriptionsUpsell, .mobileApps { display: none !important; }
+/* Keep the action row inside small and zoomed artwork tiles. */
+.tileGallery .tileGallery__sliderPanelSlide { min-width: 152px !important; }
+.playableTile .playableTile__actions { position: absolute !important; inset: auto 0 0 !important; width: 100% !important; height: 44px !important; padding: 8px !important; box-sizing: border-box !important; display: flex !important; justify-content: center !important; align-items: center !important; }
+.playableTile .playableTile__actions .playableTile__actionWrapper { position: static !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; width: 100% !important; max-width: 120px !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; float: none !important; transform: none !important; }
+.playableTile .playableTile__actionWrapper > .sc-button { box-sizing: border-box !important; flex: 1 1 0 !important; width: 36px !important; min-width: 0 !important; max-width: 36px !important; height: 28px !important; min-height: 28px !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+.playableTile .playableTile__actionWrapper > .sc-button > div { flex: 0 0 16px !important; width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; }
+.playableTile .playableTile__actionWrapper > .sc-button > div > svg { display: block !important; width: 16px !important; height: 16px !important; }
+html[data-hex-motion=true] .sc-button, html[data-hex-motion=true] a { transition: color 160ms, background-color 160ms, opacity 160ms !important; }
+html[data-hex-motion=true] .sc-button:active { transform: scale(.97); }
+html[data-hex-motion=false] *, html[data-hex-motion=false] *::before, html[data-hex-motion=false] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+@media (max-width: 900px) {
+  html, body, #app { min-width: 0 !important; }
+  .l-container { min-width: 0 !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+  .l-container.l-content { padding-left: 18px !important; padding-right: 18px !important; }
+  .l-sidebar-right { display: none !important; }
+  .l-fluid-fixed .l-main { margin-right: 0 !important; width: auto !important; }
+  .g-tabs { display: flex !important; overflow-x: auto !important; white-space: nowrap !important; }
+  .g-tabs-item { flex-shrink: 0 !important; }
+  .tileGallery .tileGallery__sliderPeekContainer { overflow-x: auto !important; overscroll-behavior-x: contain; scrollbar-width: thin; }
+}
+@media (max-width: 600px) {
+  .l-sidebar-left { float: none !important; width: auto !important; }
+  .l-fluid-fixed .l-main { margin-left: 0 !important; }
+  .listenDetails { display: block !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
