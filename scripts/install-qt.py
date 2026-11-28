@@ -87,8 +87,11 @@ def main():
             extractor = str(installed)
     for archive in archives:
         print("Extracting " + archive.name, flush=True)
-        command = ([extractor, "x", "-y", "-o" + str(destination), str(archive)] if extractor
-                   else ["tar", "-xf", str(archive), "-C", str(destination)])
+        # Qt Installer's ICU Extract operation targets gcc_64/lib.
+        extract_dir = destination / "lib" if archive.name.startswith("icu-") else destination
+        extract_dir.mkdir(parents=True, exist_ok=True)
+        command = ([extractor, "x", "-y", "-o" + str(extract_dir), str(archive)] if extractor
+                   else ["tar", "-xf", str(archive), "-C", str(extract_dir)])
         subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
     (destination / "bin" / "qt.conf").write_text("[Paths]\nPrefix=..\n", encoding="utf-8")
     print("SDK installed: " + str(destination), flush=True)
